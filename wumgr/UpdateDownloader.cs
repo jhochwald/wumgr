@@ -81,7 +81,8 @@ internal class UpdateDownloader
     {
         Progress?.Invoke(this,
             new WuAgent.ProgressArgs(_mDownloads.Count,
-                _mDownloads.Count == 0 ? 0 : (100 * _mCurrentTask + args.Percent) / _mDownloads.Count, _mCurrentTask + 1,
+                _mDownloads.Count == 0 ? 0 : (100 * _mCurrentTask + args.Percent) / _mDownloads.Count,
+                _mCurrentTask + 1,
                 args.Percent, _mInfo));
     }
 

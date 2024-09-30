@@ -35,7 +35,9 @@ public partial class WuMgr : Form
     public const int MF_STRING = 0x00000000;
     public const int MF_UNCHECKED = 0x00000000;
     private const int MF_BYPOSITION = 0x400;
+
     public const int MF_BYCOMMAND = 0x000;
+
     //public const Int32 MF_REMOVE = 0x1000;
     private const int MYMENU_ABOUT = 1000;
     private static Timer mTimer;
@@ -266,7 +268,7 @@ public partial class WuMgr : Form
         menuExit.Text = Translate.Fmt("menu_exit");
         menuExit.Click += menuExit_Click;
 
-        notifyIcon.ContextMenu.MenuItems.AddRange([mToolsMenu, menuAbout, new("-"), menuExit]);
+        notifyIcon.ContextMenu.MenuItems.AddRange([mToolsMenu, menuAbout, new MenuItem("-"), menuExit]);
 
 
         IntPtr MenuHandle = GetSystemMenu(Handle, false); // Note: to restore default set true
@@ -377,7 +379,10 @@ public partial class WuMgr : Form
                 if (LastBaloon < DateTime.Now.AddHours(-4))
                 {
                     LastBaloon = DateTime.Now;
-                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.Fmt("cap_new_upd"), Translate.Fmt("msg_new_upd", Program.MName, string.Join(Environment.NewLine, agent.MPendingUpdates.Select(x => $"- {x.Title}"))), ToolTipIcon.Info);
+                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.Fmt("cap_new_upd"),
+                        Translate.Fmt("msg_new_upd", Program.MName,
+                            string.Join(Environment.NewLine, agent.MPendingUpdates.Select(x => $"- {x.Title}"))),
+                        ToolTipIcon.Info);
                 }
         }
 

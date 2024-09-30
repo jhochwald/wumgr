@@ -46,7 +46,8 @@ public static class ServiceHelper
 
         if (serviceHandle == IntPtr.Zero) throw new ExternalException("Open Service Error");
 
-        bool result = ChangeServiceConfig(serviceHandle, MF_SERVICE_NO_CHANGE, (uint)mode, MF_SERVICE_NO_CHANGE, null, null,
+        bool result = ChangeServiceConfig(serviceHandle, MF_SERVICE_NO_CHANGE, (uint)mode, MF_SERVICE_NO_CHANGE, null,
+            null,
             IntPtr.Zero, null, null, null, null);
 
         if (result == false)

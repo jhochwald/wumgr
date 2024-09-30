@@ -34,12 +34,12 @@ public class MsUpdate
     }
 
     public readonly string ApplicationId = "";
+    public readonly StringCollection Downloads = new();
+    private IUpdate _entry;
     public int Attributes;
     public string Category = "";
     public DateTime Date = DateTime.MinValue;
     public string Description = "";
-    public readonly StringCollection Downloads = new();
-    private IUpdate _entry;
     public int HResult;
     public string Kb = "";
     public int ResultCode;
@@ -165,6 +165,7 @@ public class MsUpdate
                 default:
                     continue;
             }
+
         return product.Length == 0 ? classification : product + "; " + classification;
     }
 

@@ -21,9 +21,10 @@ internal class PipeIpc(string pipeName)
     // Delegate for passing received message back to caller
     public delegate void DelegateMessage(PipeServer pipe, string data);
 
-    private readonly List<PipeClient> ClientPipes = new();
     private readonly Dispatcher _mDispatcher = Dispatcher.CurrentDispatcher;
     private readonly List<PipeServer> _serverPipes = new();
+
+    private readonly List<PipeClient> ClientPipes = new();
 
     public event DelegateMessage PipeMessage;
 

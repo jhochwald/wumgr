@@ -1,5 +1,7 @@
 ﻿#region
 
+#region
+
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -9,9 +11,9 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
+#endregion
+
 namespace wumgr.Common;
-
-
 
 #endregion
 

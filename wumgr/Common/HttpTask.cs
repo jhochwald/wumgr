@@ -29,8 +29,8 @@ internal class HttpTask
     public HttpTask(string url, string dlPath, string dlName = null, bool update = false)
     {
         _mUrl = url;
-        this.DlPath = dlPath;
-        this.DlName = dlName;
+        DlPath = dlPath;
+        DlName = dlName;
 
         _bufferRead = null;
         _request = null;

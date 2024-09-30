@@ -48,7 +48,8 @@ internal static class WinConsole
         FileAccess dotNetFileAccess)
     {
         SafeFileHandle file = new(
-            CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, MF_OPEN_EXISTING, MF_FILE_ATTRIBUTE_NORMAL,
+            CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, MF_OPEN_EXISTING,
+                MF_FILE_ATTRIBUTE_NORMAL,
                 IntPtr.Zero), true);
         if (!file.IsInvalid)
         {

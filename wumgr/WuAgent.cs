@@ -50,30 +50,37 @@ internal class WuAgent
     public static readonly string MsUpdGuid = "7971f918-a847-4430-9279-4a52d1efe18d"; // Microsoft Update
     public static string WinUpdUid = "9482f4b4-e343-43b6-b170-9a65bc822c77"; // Windows Update
     public static string WsUsUid = "3da21691-e39d-4da6-8a4b-b43877bcb1b7"; // Windows Server Update Service
-    public static string DCatGuid = "8b24b027-1dee-babb-9a95-3517dfb9c552"; // DCat Fighting Prod - Windows Insider Program
+
+    public static string
+        DCatGuid = "8b24b027-1dee-babb-9a95-3517dfb9c552"; // DCat Fighting Prod - Windows Insider Program
+
     public static string WinStorGuid = "117cab2d-82b1-4b5a-a08c-4d62dbee7782 "; // Windows Store
-    public static string WinStorDCat2Guid = "855e8a7c-ecb4-4ca3-b045-1dfa50104289"; // Windows Store (DCat Prod) - Insider Updates for Store Apps
+
+    public static string
+        WinStorDCat2Guid =
+            "855e8a7c-ecb4-4ca3-b045-1dfa50104289"; // Windows Store (DCat Prod) - Insider Updates for Store Apps
+
+    private readonly Dispatcher _mDispatcher;
+    private readonly string _mMyOfflineSvc = "Offline Sync Service";
     private readonly UpdateDownloader _mUpdateDownloader;
     private readonly UpdateInstaller _mUpdateInstaller;
     private readonly UpdateServiceManager _mUpdateServiceManager;
     private readonly UpdateSession _mUpdateSession;
     public readonly string DlPath;
-    private UpdateCallback _mCallback;
-    private AgentOperation _mCurOperation = AgentOperation.None;
-    private readonly Dispatcher _mDispatcher;
-    private WUApiLib.UpdateDownloader _mDownloader;
-    private IDownloadJob _mDownloadJob;
     public readonly List<MsUpdate> MHiddenUpdates = new();
-    private IInstallationJob _mInstalationJob;
     public readonly List<MsUpdate> MInstalledUpdates = new();
-    private IUpdateInstaller _mInstaller;
-    private bool _mIsValid;
-    private readonly string _mMyOfflineSvc = "Offline Sync Service";
-    private IUpdateService _mOfflineService;
     public readonly List<MsUpdate> MPendingUpdates = new();
-    private ISearchJob _mSearchJob;
     public readonly StringCollection MServiceList = new();
     public readonly List<MsUpdate> MUpdateHistory = new();
+    private UpdateCallback _mCallback;
+    private AgentOperation _mCurOperation = AgentOperation.None;
+    private WUApiLib.UpdateDownloader _mDownloader;
+    private IDownloadJob _mDownloadJob;
+    private IInstallationJob _mInstalationJob;
+    private IUpdateInstaller _mInstaller;
+    private bool _mIsValid;
+    private IUpdateService _mOfflineService;
+    private ISearchJob _mSearchJob;
     private IUpdateSearcher _mUpdateSearcher;
 
     public WuAgent()
@@ -251,7 +258,8 @@ internal class WuAgent
                 AppLog.Line("Setting up 'Offline Sync Service'");
 
                 // http://go.microsoft.com/fwlink/p/?LinkID=74689
-                _mOfflineService = _mUpdateServiceManager.AddScanPackageService(_mMyOfflineSvc, DlPath + @"\wsusscn2.cab");
+                _mOfflineService =
+                    _mUpdateServiceManager.AddScanPackageService(_mMyOfflineSvc, DlPath + @"\wsusscn2.cab");
             }
 
             _mUpdateSearcher.ServerSelection = ServerSelection.ssOthers;
@@ -396,7 +404,9 @@ internal class WuAgent
         {
             //string query = "(IsInstalled = 0 and IsHidden = 0) or (IsInstalled = 1 and IsHidden = 0) or (IsHidden = 1)";
             //string query = "(IsInstalled = 0 and IsHidden = 0) or (IsInstalled = 1 and IsHidden = 0) or (IsHidden = 1) or (IsInstalled = 0 and IsHidden = 0 and DeploymentAction='OptionalInstallation') or (IsInstalled = 1 and IsHidden = 0 and DeploymentAction='OptionalInstallation') or (IsHidden = 1 and DeploymentAction='OptionalInstallation')";
-            string query = MiscFunc.IsWindows7OrLower ? "(IsInstalled = 0 and IsHidden = 0) or (IsInstalled = 1 and IsHidden = 0) or (IsHidden = 1)" : "(IsInstalled = 0 and IsHidden = 0 and DeploymentAction=*) or (IsInstalled = 1 and IsHidden = 0 and DeploymentAction=*) or (IsHidden = 1 and DeploymentAction=*)";
+            string query = MiscFunc.IsWindows7OrLower
+                ? "(IsInstalled = 0 and IsHidden = 0) or (IsInstalled = 1 and IsHidden = 0) or (IsHidden = 1)"
+                : "(IsInstalled = 0 and IsHidden = 0 and DeploymentAction=*) or (IsInstalled = 1 and IsHidden = 0 and DeploymentAction=*) or (IsHidden = 1 and DeploymentAction=*)";
             _mSearchJob = _mUpdateSearcher.BeginSearch(query, _mCallback, null);
         }
         catch (Exception err)

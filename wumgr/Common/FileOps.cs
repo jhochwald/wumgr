@@ -28,7 +28,9 @@ internal class FileOps
     public static string SID_LocalAccAdmin = "S-1-5-114"; //	Local account and member of Administrators-Group
     public static string SID_Net = "S-1-5-2"; //	Network
     public static string SID_Natch = "S-1-5-3"; //	Batch
+
     public static string SID_Interactive = "S-1-5-4"; //	Interactive
+
     //public static string SID_ = "S-1-5-5- *X*- *Y* Logon Session
     public static string SID_Service = "S-1-5-6"; //	Service
     public static string SID_AnonLogin = "S-1-5-7"; //	Anonymous Logon

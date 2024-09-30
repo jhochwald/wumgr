@@ -19,11 +19,11 @@ namespace wumgr;
 
 internal static class Program
 {
+    private const string MF_N_TASK_NAME = "WuMgrNoUAC";
     private static string[] _args;
     private static bool _mConsole;
     public static string MVersion = "0.0";
     public static readonly string MName = "Update Manager for Windows";
-    private const string MF_N_TASK_NAME = "WuMgrNoUAC";
     public static string AppPath = "";
     public static string WrkPath = "";
     private static WuAgent _agent;
@@ -46,7 +46,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] mainArgs)
     {
-        Program._args = mainArgs;
+        _args = mainArgs;
 
         _mConsole = WinConsole.Initialize(TestArg("-console"));
 
