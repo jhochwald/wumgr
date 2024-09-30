@@ -12,7 +12,7 @@ using wumgr.Common;
 
 namespace wumgr;
 
-internal class Gpo
+internal abstract class Gpo
 {
     public enum AuOptions
     {
@@ -327,7 +327,7 @@ internal class Gpo
         }
     }
 
-    public static void ConfigSvc(string name, ServiceStartMode mode)
+    private static void ConfigSvc(string name, ServiceStartMode mode)
     {
         ServiceController svc = new(name);
         bool showErr = false;
@@ -344,7 +344,7 @@ internal class Gpo
         }
         catch
         {
-            if (showErr)
+            if (false)
                 AppLog.Line("Error Stoping Service: {0}", name);
         }
 
@@ -368,7 +368,7 @@ internal class Gpo
         foreach (RegistryAccessRule rule in rules)
             if (rule.IdentityReference.Value.Equals(FileOps.SidSystem))
                 ac.RemoveAccessRule(rule);
-        // Note: windows tryes to re enable this services so we need to remove system write access
+        // Note: windows tryes to re-enable this services so we need to remove system write access
         if (mode == ServiceStartMode.Disabled) // add new rule
             ac.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(FileOps.SidSystem),
                 RegistryRights.FullControl, AccessControlType.Deny));

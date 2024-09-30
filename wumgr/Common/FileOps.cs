@@ -12,7 +12,7 @@ namespace wumgr.Common;
 internal class FileOps
 {
     public static string SID_null = "S-1-0-0"; //	Null SID
-    public static string SidWorls = "S-1-1-0"; //	World
+    public static readonly string SidWorls = "S-1-1-0"; //	World
     public static string SID_Local = "S-1-2-0"; //	Local
     public static string SID_Console = "S-1-2-1"; //	Console Logon
     public static string SID_OwnerID = "S-1-3-0"; //	Creator Owner ID
@@ -25,35 +25,29 @@ internal class FileOps
     public static string SID_AllServices = "S-1-5-80-0"; //	All Services
     public static string SID_DialUp = "S-1-5-1"; //	Dialup
     public static string SID_LocalAcc = "S-1-5-113"; //	Local account
-    public static string SID_LocalAccAdmin = "S-1-5-114"; //	Local account and member of Administrators group
+    public static string SID_LocalAccAdmin = "S-1-5-114"; //	Local account and member of Administrators-Group
     public static string SID_Net = "S-1-5-2"; //	Network
     public static string SID_Natch = "S-1-5-3"; //	Batch
-
     public static string SID_Interactive = "S-1-5-4"; //	Interactive
-
     //public static string SID_ = "S-1-5-5- *X*- *Y* Logon Session
     public static string SID_Service = "S-1-5-6"; //	Service
     public static string SID_AnonLogin = "S-1-5-7"; //	Anonymous Logon
-
     public static string SID_Proxy = "S-1-5-8"; //	Proxy
     public static string SID_EDC = "S-1-5-9"; //	Enterprise Domain Controllers
     public static string SID_Self = "S-1-5-10"; //	Self
-    public static string SID_AuthenticetedUser = "S-1-5-11"; //	Authenticated Users
-
+    public static string SID_AuthenticatedUser = "S-1-5-11"; //	Authenticated Users
     public static string SID_Restricted = "S-1-5-12"; //	Restricted Code
     public static string SID_TermUser = "S-1-5-13"; //	Terminal Server User
     public static string SID_RemoteLogin = "S-1-5-14"; //	Remote Interactive Logon
     public static string SID_ThisORg = "S-1-5-15"; //	This Organization
     public static string SID_IIS = "S-1-5-17"; //	IIS_USRS
-    public static string SidSystem = "S-1-5-18"; //	System(or LocalSystem)
-
+    public static readonly string SidSystem = "S-1-5-18"; //	System(or LocalSystem)
     public static string SID_NTAuthL = "S-1-5-19"; //	NT Authority(LocalService)
     public static string SID_NetServices = "S-1-5-20"; //	Network Service
-
-    private static string _sidAdmins = "S-1-5-32-544"; //	Administrators
-    private static string _sidUsers = "S-1-5-32-545"; //	Users
+    private static readonly string SidAdmins = "S-1-5-32-544"; //	Administrators
+    private static readonly string _sidUsers = "S-1-5-32-545"; //	Users
     public static string SID_Guests = "S-1-5-32-546"; //	Guests
-    public static string SID_PowerUsers = "S-1-5-32-547"; //	Power Users
+    public static string SID_PowerUsers = "S-1-5-32-547"; //	Power-Users
     public static string SID_AccOps = "S-1-5-32-548"; //	Account Operators
     public static string SID_ServerOps = "S-1-5-32-549"; //	Server Operators
     public static string SID_PrintOps = "S-1-5-32-550"; //	Print Operators
@@ -72,7 +66,7 @@ internal class FileOps
     public static string SID_HighLevel = "S-1-16-12288"; //	High Mandatory Level
     public static string SID_SysLevel = "S-1-16-16384"; //	System Mandatory Level
     public static string SID_PPLevel = "S-1-16-20480"; //	Protected Process Mandatory Level
-    public static string SID_SPLevel = "S-1-16-28672"; //	Secure Process Mandatory Level
+    public static string SidSpLevel = "S-1-16-28672"; //	Secure Process Mandatory Level
 
     public static string FormatSize(decimal size)
     {
@@ -145,7 +139,7 @@ internal class FileOps
         {
             if (rule.AccessControlType != AccessControlType.Allow)
                 continue;
-            if (rule.IdentityReference.Value.Equals(_sidAdmins) || rule.IdentityReference.Value.Equals(SidSystem))
+            if (rule.IdentityReference.Value.Equals(SidAdmins) || rule.IdentityReference.Value.Equals(SidSystem))
                 continue;
             if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.Delete)) != 0)
                 return 0;
@@ -177,7 +171,7 @@ internal class FileOps
         foreach (FileSystemAccessRule rule in rules)
             fs.RemoveAccessRule(rule);
 
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(_sidAdmins), FileSystemRights.FullControl,
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SidAdmins), FileSystemRights.FullControl,
             AccessControlType.Allow));
         fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SidSystem), FileSystemRights.FullControl,
             AccessControlType.Allow));
@@ -221,7 +215,7 @@ internal class FileOps
 
 
             FileSecurity ac = File.GetAccessControl(path);
-            ac.SetOwner(new SecurityIdentifier(_sidAdmins));
+            ac.SetOwner(new SecurityIdentifier(SidAdmins));
             File.SetAccessControl(path, ac);
         }
         catch (PrivilegeNotHeldException err)

@@ -34,7 +34,7 @@ internal class AppLog
             _mInstance.LogLine(line);
     }
 
-    public void LogLine(string line)
+    private void LogLine(string line)
     {
         _mDispatcher.BeginInvoke(new Action(() =>
         {
@@ -63,13 +63,8 @@ internal class AppLog
         return _mInstance;
     }
 
-    public class LogEventArgs : EventArgs
+    public class LogEventArgs(string line) : EventArgs
     {
-        public LogEventArgs(string _line)
-        {
-            line = _line;
-        }
-
-        public string line { get; set; }
+        public string line { get; set; } = line;
     }
 }

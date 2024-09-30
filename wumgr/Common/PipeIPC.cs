@@ -16,31 +16,20 @@ using System.Windows.Threading;
 
 namespace wumgr.Common;
 
-internal class PipeIpc
+internal class PipeIpc(string pipeName)
 {
     // Delegate for passing received message back to caller
     public delegate void DelegateMessage(PipeServer pipe, string data);
 
-    private readonly List<PipeClient> ClientPipes;
-    private readonly Dispatcher _mDispatcher;
-    private readonly string _mPipeName;
-    private readonly List<PipeServer> _serverPipes;
-
-    public PipeIpc(string pipeName)
-    {
-        _mDispatcher = Dispatcher.CurrentDispatcher;
-
-        _mPipeName = pipeName;
-
-        _serverPipes = new List<PipeServer>();
-        ClientPipes = new List<PipeClient>();
-    }
+    private readonly List<PipeClient> ClientPipes = new();
+    private readonly Dispatcher _mDispatcher = Dispatcher.CurrentDispatcher;
+    private readonly List<PipeServer> _serverPipes = new();
 
     public event DelegateMessage PipeMessage;
 
     public void Listen()
     {
-        PipeServer serverPipe = new(_mPipeName);
+        PipeServer serverPipe = new(pipeName);
         _serverPipes.Add(serverPipe);
 
         serverPipe.DataReceived += (sndr, data) =>
@@ -48,14 +37,14 @@ internal class PipeIpc
             _mDispatcher.Invoke(() => { PipeMessage?.Invoke(serverPipe, data); });
         };
 
-        serverPipe.Connected += (sndr, args) => { _mDispatcher.Invoke(() => { Listen(); }); };
+        serverPipe.Connected += (sndr, args) => { _mDispatcher.Invoke(Listen); };
 
         serverPipe.PipeClosed += (sndr, args) => { _mDispatcher.Invoke(() => { _serverPipes.Remove(serverPipe); }); };
     }
 
     public PipeClient Connect(int timeOut = 10000)
     {
-        PipeClient clientPipe = new(".", _mPipeName);
+        PipeClient clientPipe = new(".", pipeName);
         if (!clientPipe.Connect(timeOut))
             return null;
 
@@ -81,7 +70,7 @@ internal class PipeIpc
             PipeStream = null;
         }
 
-        public bool IsConnected()
+        protected bool IsConnected()
         {
             return PipeStream.IsConnected;
         }
@@ -106,7 +95,7 @@ internal class PipeIpc
             })(this);
         }
 
-        protected void RunAsyncByteReader(Action<byte[]> asyncReader)
+        private void RunAsyncByteReader(Action<byte[]> asyncReader)
         {
             int len = sizeof(int);
             byte[] buff = new byte[len];
@@ -159,10 +148,10 @@ internal class PipeIpc
 
         public event EventHandler<EventArgs> Connected;
 
-        protected void PipeConnected(IAsyncResult asyncResult)
+        private void PipeConnected(IAsyncResult asyncResult)
         {
             PipeStream.EndWaitForConnection(asyncResult);
-            Connected?.Invoke(this, new EventArgs());
+            Connected?.Invoke(this, EventArgs.Empty);
             InitAsyncReader();
         }
     }
@@ -209,7 +198,7 @@ internal class PipeIpc
             return Read();
         }
 
-        public string Read()
+        private string Read()
         {
             // the MessageQueue is a last in first out type of container, so we need to reverse it
             string ret = string.Join("\0", _messageQueue.ToArray().Reverse());

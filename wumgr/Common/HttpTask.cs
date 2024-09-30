@@ -215,8 +215,7 @@ Message:{0}", e.Message);
 
             //Console.WriteLine(task.lastTime);
 
-            if (task.DlName == null)
-                task.DlName = fileName;
+            task.DlName ??= fileName;
 
             FileInfo testInfo = new(task.DlPath + @"\" + task.DlName);
             if (testInfo.Exists && testInfo.LastWriteTime == task._lastTime && testInfo.Length == task._mLength)
@@ -252,8 +251,7 @@ Message:{0}", e.Message);
             {
                 string fileName = Path.GetFileName(e.Response.ResponseUri.AbsolutePath);
 
-                if (task.DlName == null)
-                    task.DlName = fileName;
+                task.DlName ??= fileName;
 
                 FileInfo testInfo = new(task.DlPath + @"\" + task.DlName);
                 if (testInfo.Exists)
@@ -312,7 +310,7 @@ Message:{0}", e.Message);
                 return;
             }
 
-            // this is done on finisch
+            // this is done on finish
             //task.streamWriter.Close();
             //task.streamResponse.Close();
             success = 1;
@@ -321,10 +319,8 @@ Message:{0}", e.Message);
         {
             errCode = -3;
             error = e;
-            Console.WriteLine(@"
-ReadCallBack Exception raised!");
-            Console.WriteLine(@"
-Message:{0}", e.Message);
+            Console.WriteLine(@"ReadCallBack Exception raised!");
+            Console.WriteLine(@"Message:{0}", e.Message);
         }
 
         task._mDispatcher.Invoke(() => { task.Finish(success, errCode, error); });
@@ -333,40 +329,26 @@ Message:{0}", e.Message);
     public event EventHandler<FinishedEventArgs> Finished;
     public event EventHandler<ProgressEventArgs> Progress;
 
-    public class FinishedEventArgs : EventArgs
+    public class FinishedEventArgs(int errCode = 0, Exception error = null) : EventArgs
     {
-        private int _errCode;
-        private Exception _error;
-
-        public FinishedEventArgs(int errCode = 0, Exception error = null)
-        {
-            this._errCode = errCode;
-            this._error = error;
-        }
-
-        public bool Success => _errCode == 0;
-        public bool Cancelled => _errCode == -1;
+        public bool Success => errCode == 0;
+        public bool Cancelled => errCode == -1;
 
         public string GetError()
         {
-            if (_error != null)
-                return _error.ToString();
-            switch (_errCode)
+            if (error != null)
+                return error.ToString();
+            switch (errCode)
             {
                 case 0: return "Ok";
                 case -1: return "Canceled";
-                default: return _errCode.ToString();
+                default: return errCode.ToString();
             }
         }
     }
 
-    public class ProgressEventArgs : EventArgs
+    public class ProgressEventArgs(int percent) : EventArgs
     {
-        public readonly int Percent;
-
-        public ProgressEventArgs(int percent)
-        {
-            this.Percent = percent;
-        }
+        public readonly int Percent = percent;
     }
 }

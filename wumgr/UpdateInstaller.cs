@@ -16,7 +16,7 @@ namespace wumgr;
 
 internal class UpdateInstaller
 {
-    private readonly Dispatcher _mDispatcher;
+    private readonly Dispatcher _mDispatcher = Dispatcher.CurrentDispatcher;
     private bool _canceled;
     private bool _doInstall = true;
     private int _errorCount;
@@ -25,11 +25,6 @@ internal class UpdateInstaller
     private Thread _mThread;
     private List<MsUpdate> _mUpdates;
     private bool _rebootRequired;
-
-    public UpdateInstaller()
-    {
-        _mDispatcher = Dispatcher.CurrentDispatcher;
-    }
 
     private void Reset()
     {
@@ -98,9 +93,11 @@ internal class UpdateInstaller
             return;
         }
 
-        FinishedEventArgs args = new(_errorCount, _rebootRequired);
-        //args.AllFiles = mAllFiles;
-        args.Updates = _mUpdates;
+        FinishedEventArgs args = new(_errorCount, _rebootRequired)
+        {
+            //args.AllFiles = mAllFiles;
+            Updates = _mUpdates
+        };
         _mAllFiles = null;
         _mUpdates = null;
         Finished?.Invoke(this, args);
@@ -120,7 +117,7 @@ internal class UpdateInstaller
         NextUpdate();
     }
 
-    public void RunInstall(object parameters)
+    private void RunInstall(object parameters)
     {
         List<string> files = (List<string>)parameters;
 
@@ -150,7 +147,7 @@ internal class UpdateInstaller
                     string supportedExtensions = "*.msu,*.msi,*.cab,*.exe";
                     IEnumerable<string> foundFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
                         .Where(s => supportedExtensions.Contains(Path.GetExtension(s).ToLower()));
-                    if (foundFiles.Count() == 0)
+                    if (!foundFiles.Any())
                         throw new FileNotFoundException("Expected file not found in zip");
 
                     file = foundFiles.First();
@@ -173,7 +170,7 @@ internal class UpdateInstaller
                 else
                     throw new FileFormatException("Unknown Update format: " + ext);
 
-                if (exitCode == 3010 || exitCode == 3010)
+                if (exitCode == 3010)
                 {
                     reboot = true; // reboot requires
                 }
@@ -200,10 +197,12 @@ internal class UpdateInstaller
 
     private int InstallExe(string fileName)
     {
-        ProcessStartInfo startInfo = new();
-        startInfo.FileName = fileName;
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = fileName
+        };
 
-        // ToDo: load from file
+        // ToDo: load from file or make it less complex
         string name = Path.GetFileNameWithoutExtension(fileName);
         if (name.IndexOf("ndp", StringComparison.CurrentCultureIgnoreCase) == 0 ||
             name.IndexOf("OFV", StringComparison.CurrentCultureIgnoreCase) == 0 ||
@@ -217,18 +216,22 @@ internal class UpdateInstaller
 
     private int InstallMsi(string fileName)
     {
-        ProcessStartInfo startInfo = new();
-        startInfo.FileName = @"%SystemRoot%\System32\msiexec.exe";
-        startInfo.Arguments = "/i \"" + fileName + "\" /qn /norestart";
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = @"%SystemRoot%\System32\msiexec.exe",
+            Arguments = "/i \"" + fileName + "\" /qn /norestart"
+        };
 
         return ExecTask(startInfo);
     }
 
     private int InstallMsu(string fileName)
     {
-        ProcessStartInfo startInfo = new();
-        startInfo.FileName = @"%SystemRoot%\System32\wusa.exe";
-        startInfo.Arguments = "\"" + fileName + "\" /quiet /norestart";
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = @"%SystemRoot%\System32\wusa.exe",
+            Arguments = "\"" + fileName + "\" /quiet /norestart"
+        };
 
         return ExecTask(startInfo);
     }
@@ -249,7 +252,7 @@ internal class UpdateInstaller
             proc.WaitForExit();
             while (!proc.StandardOutput.EndOfStream)
             {
-                string[] line = proc.StandardOutput.ReadLine().Split(':');
+                string[] line = proc.StandardOutput.ReadLine()!.Split(':');
                 if (line.Length != 2)
                     continue;
 
@@ -272,9 +275,11 @@ internal class UpdateInstaller
         if (!CheckCab(fileName) || _canceled)
             return 0; // update not aplicable or user canceled
 
-        ProcessStartInfo startInfo = new();
-        startInfo.FileName = @"%SystemRoot%\System32\Dism.exe";
-        startInfo.Arguments = "/Online /Quiet /NoRestart /Add-Package /PackagePath:\"" + fileName + "\" /IgnoreCheck";
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = @"%SystemRoot%\System32\Dism.exe",
+            Arguments = "/Online /Quiet /NoRestart /Add-Package /PackagePath:\"" + fileName + "\" /IgnoreCheck"
+        };
 
         return ExecTask(startInfo);
     }
@@ -311,13 +316,15 @@ internal class UpdateInstaller
 
         try
         {
-            ProcessStartInfo startInfo = new();
-            startInfo.FileName = @"%SystemRoot%\System32\wusa.exe";
-            startInfo.Arguments = "/uninstall /kb:" + kb.Substring(2) + " /norestart"; // /quiet 
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = @"%SystemRoot%\System32\wusa.exe",
+                Arguments = "/uninstall /kb:" + kb.Substring(2) + " /norestart" // /quiet 
+            };
 
             int exitCode = ExecTask(startInfo);
 
-            if (exitCode == 3010 || exitCode == 3010 || exitCode == 1641)
+            if (exitCode == 3010 || exitCode == 1641)
             {
                 reboot = true;
             }
@@ -340,19 +347,12 @@ internal class UpdateInstaller
 
     public event EventHandler<WuAgent.ProgressArgs> Progress;
 
-    public class FinishedEventArgs : EventArgs
+    public class FinishedEventArgs(int errorCount, bool reboot) : EventArgs
     {
-        private int _errorCount;
-        public bool Reboot;
+        public readonly bool Reboot = reboot;
         public List<MsUpdate> Updates;
 
-        public FinishedEventArgs(int errorCount, bool reboot)
-        {
-            this._errorCount = errorCount;
-            this.Reboot = reboot;
-        }
-
         //public MultiValueDictionary<string, string> AllFiles;
-        public bool Success => _errorCount == 0;
+        public bool Success => errorCount == 0;
     }
 }

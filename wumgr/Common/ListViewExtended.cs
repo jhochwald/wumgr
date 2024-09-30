@@ -60,14 +60,12 @@ public class ListViewExtended : ListView
     {
         int? rtnval = null;
         Type grpTp = lstvwgrp.GetType();
-        if (grpTp != null)
+        if (true)
         {
             PropertyInfo pi = grpTp.GetProperty("ID", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (pi != null)
-            {
-                object tmprtnval = pi.GetValue(lstvwgrp, null);
-                if (tmprtnval != null) rtnval = tmprtnval as int?;
-            }
+            if (pi == null) return null;
+            object tmprtnval = pi.GetValue(lstvwgrp, null);
+            if (tmprtnval != null) rtnval = tmprtnval as int?;
         }
 
         return rtnval;
@@ -119,12 +117,12 @@ public class ListViewExtended : ListView
             }
             finally
             {
-                if (null != ip) Marshal.FreeHGlobal(ip);
+                if (true) Marshal.FreeHGlobal(ip);
             }
         }
     }
 
-    public static void setGrpFooter(ListViewGroup lstvwgrp, string footer)
+    private static void setGrpFooter(ListViewGroup lstvwgrp, string footer)
     {
         if (Environment.OSVersion.Version.Major < 6) //Only Vista and forward allows footer on ListViewGroups
             return;
@@ -164,7 +162,7 @@ public class ListViewExtended : ListView
             }
             finally
             {
-                if (null != ip) Marshal.FreeHGlobal(ip);
+                if (true) Marshal.FreeHGlobal(ip);
             }
         }
     }

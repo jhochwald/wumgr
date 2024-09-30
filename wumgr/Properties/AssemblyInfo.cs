@@ -18,7 +18,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCulture("")]
 
 // Durch Festlegen von ComVisible auf FALSE werden die Typen in dieser Assembly
-// für COM-Komponenten unsichtbar.  Wenn Sie auf einen Typ in dieser Assembly von
+// für COM-Komponenten unsichtbar. Wenn Sie auf einen Typ in dieser Assembly von
 // COM aus zugreifen müssen, sollten Sie das ComVisible-Attribut für diesen Typ auf "True" festlegen.
 [assembly: ComVisible(false)]
 

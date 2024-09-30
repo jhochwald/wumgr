@@ -105,9 +105,11 @@ internal static class Program
                 // Restart program and run as admin
                 string exeName = Process.GetCurrentProcess().MainModule!.FileName;
                 string arguments = "\"" + string.Join("\" \"", mainArgs) + "\"";
-                ProcessStartInfo startInfo = new(exeName, arguments);
-                startInfo.UseShellExecute = true;
-                startInfo.Verb = "runas";
+                ProcessStartInfo startInfo = new(exeName, arguments)
+                {
+                    UseShellExecute = true,
+                    Verb = "runas"
+                };
                 try
                 {
                     Process.Start(startInfo);
@@ -124,7 +126,7 @@ internal static class Program
 
         if (!FileOps.TestWrite(GetIniPath()))
         {
-            Console.WriteLine("Can't write to default working directory.");
+            Console.WriteLine(@"Can't write to default working directory.");
 
             string downloadFolder = KnownFolders.GetPath(KnownFolder.Downloads) ??
                                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads";
@@ -270,9 +272,10 @@ internal static class Program
 
     public static bool TestArg(string name)
     {
-        for (int i = 0; i < _args.Length; i++)
-            if (_args[i].Equals(name, StringComparison.CurrentCultureIgnoreCase))
+        foreach (string t in _args)
+            if (t.Equals(name, StringComparison.CurrentCultureIgnoreCase))
                 return true;
+
         return false;
     }
 
@@ -385,7 +388,7 @@ internal static class Program
         return true;
     }
 
-    public static bool SkipUacRun()
+    private static bool SkipUacRun()
     {
         bool silent = true;
         try
@@ -430,13 +433,13 @@ internal static class Program
     {
         string message = "Available command line options\r\n";
         string[] help =
-        {
+        [
             "-tray\t\tStart in Tray",
             "-onclose [cmd]\tExecute commands when closing",
             "-update\t\tSearch for updates on start",
             "-console\t\tshow console (for debugging)",
             "-help\t\tShow this help message"
-        };
+        ];
         if (!_mConsole)
         {
             MessageBox.Show(message + string.Join("\r\n", help));
@@ -444,8 +447,8 @@ internal static class Program
         else
         {
             Console.WriteLine(message);
-            for (int j = 0; j < help.Length; j++)
-                Console.WriteLine(" " + help[j]);
+            foreach (string t in help)
+                Console.WriteLine(" " + t);
         }
     }
 }

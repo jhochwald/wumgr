@@ -33,12 +33,12 @@ public class MsUpdate
         History
     }
 
-    public string ApplicationId = "";
+    public readonly string ApplicationId = "";
     public int Attributes;
     public string Category = "";
     public DateTime Date = DateTime.MinValue;
     public string Description = "";
-    public StringCollection Downloads = new();
+    public readonly StringCollection Downloads = new();
     private IUpdate _entry;
     public int HResult;
     public string Kb = "";
@@ -149,7 +149,7 @@ public class MsUpdate
         return update.KBArticleIDs.Count > 0 ? "KB" + update.KBArticleIDs[0] : "KBUnknown";
     }
 
-    public static string GetCategory(ICategoryCollection cats)
+    private static string GetCategory(ICategoryCollection cats)
     {
         string classification = "";
         string product = "";

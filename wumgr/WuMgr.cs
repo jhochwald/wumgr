@@ -95,7 +95,7 @@ public partial class WuMgr : Form
 
         agent = WuAgent.GetInstance();
         agent.Progress += OnProgress;
-        agent.UpdatesChaged += OnUpdates;
+        agent.UpdatesChanged += OnUpdates;
         agent.Finished += OnFinished;
 
         if (!agent.IsActive())
@@ -266,7 +266,7 @@ public partial class WuMgr : Form
         menuExit.Text = Translate.Fmt("menu_exit");
         menuExit.Click += menuExit_Click;
 
-        notifyIcon.ContextMenu.MenuItems.AddRange(new[] { mToolsMenu, menuAbout, new("-"), menuExit });
+        notifyIcon.ContextMenu.MenuItems.AddRange([mToolsMenu, menuAbout, new("-"), menuExit]);
 
 
         IntPtr MenuHandle = GetSystemMenu(Handle, false); // Note: to restore default set true
@@ -454,7 +454,7 @@ public partial class WuMgr : Form
         }
 
         agent.Progress -= OnProgress;
-        agent.UpdatesChaged -= OnUpdates;
+        agent.UpdatesChanged -= OnUpdates;
         agent.Finished -= OnFinished;
     }
 
@@ -522,7 +522,7 @@ public partial class WuMgr : Form
         string INIPath = Program.WrkPath + @"\Updates.ini";
 
         updateView.Items.Clear();
-        List<ListViewItem> items = new();
+        List<ListViewItem> items = [];
         for (int i = 0; i < List.Count; i++)
         {
             MsUpdate Update = List[i];
@@ -593,14 +593,14 @@ public partial class WuMgr : Form
 
 
             string[] strings =
-            {
+            [
                 Update.Title,
                 Update.Category,
                 CurrentList == UpdateLists.UpdateHistory ? Update.ApplicationId : Update.Kb,
                 Update.Date.ToString(CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern),
                 FileOps.FormatSize(Update.Size),
                 State
-            };
+            ];
 
             if (mSearchFilter != null)
             {
@@ -663,7 +663,7 @@ public partial class WuMgr : Form
 
     public List<MsUpdate> GetUpdates()
     {
-        List<MsUpdate> updates = new();
+        List<MsUpdate> updates = [];
         foreach (ListViewItem item in updateView.CheckedItems)
             updates.Add((MsUpdate)item.Tag);
         return updates;
@@ -921,7 +921,7 @@ public partial class WuMgr : Form
             return;
         WuAgent.RetCodes ret = WuAgent.RetCodes.Undefined;
         ret = agent.UnInstallUpdatesManually(GetUpdates());
-        ShowResult(WuAgent.AgentOperation.RemoveingUpdates, ret);
+        ShowResult(WuAgent.AgentOperation.RemovingUpdates, ret);
     }
 
     private void btnHide_Click(object sender, EventArgs e)
@@ -975,7 +975,7 @@ public partial class WuMgr : Form
             case WuAgent.AgentOperation.PreparingUpdates:
             case WuAgent.AgentOperation.DownloadingUpdates: return Translate.Fmt("op_dl");
             case WuAgent.AgentOperation.InstallingUpdates: return Translate.Fmt("op_inst");
-            case WuAgent.AgentOperation.RemoveingUpdates: return Translate.Fmt("op_rem");
+            case WuAgent.AgentOperation.RemovingUpdates: return Translate.Fmt("op_rem");
             case WuAgent.AgentOperation.CancelingOperation: return Translate.Fmt("op_cancel");
         }
 
@@ -1028,7 +1028,7 @@ public partial class WuMgr : Form
 
             if (MiscFunc.ParseInt(Program.IniReadValue("Options", "Refresh", "0")) == 1 &&
                 (agent.CurOperation() == WuAgent.AgentOperation.InstallingUpdates ||
-                 agent.CurOperation() == WuAgent.AgentOperation.RemoveingUpdates))
+                 agent.CurOperation() == WuAgent.AgentOperation.RemovingUpdates))
                 doUpdte = true;
         }
     }
@@ -1082,7 +1082,7 @@ public partial class WuMgr : Form
         switch (ret)
         {
             case WuAgent.RetCodes.Success:
-            case WuAgent.RetCodes.Abborted:
+            case WuAgent.RetCodes.Aborted:
             case WuAgent.RetCodes.InProgress: return;
             case WuAgent.RetCodes.AccessError:
                 status = Translate.Fmt("err_admin");

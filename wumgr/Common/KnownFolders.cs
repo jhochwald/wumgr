@@ -15,7 +15,7 @@ namespace wumgr.Common;
 public static class KnownFolders
 {
     private static readonly string[] KnownFolderGuids =
-    {
+    [
         "{56784854-C6CB-462B-8169-88E350ACB882}", // Contacts
         "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", // Desktop
         "{FDD39AD0-238F-46AF-ADB4-6C85480369C7}", // Documents
@@ -27,22 +27,7 @@ public static class KnownFolders
         "{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}", // SavedGames
         "{7D1D3A04-DEBB-4115-95CF-2F29DA2920DA}", // SavedSearches
         "{18989B1D-99B5-455B-841C-AB7C74E4DDFC}" // Videos
-    };
-
-    /// <summary>
-    ///     Gets the current path to the specified known folder as currently configured. This does
-    ///     not require the folder to be existent.
-    /// </summary>
-    /// <param name="knownFolder">The known folder which current path will be returned.</param>
-    /// <returns>The default path of the known folder.</returns>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">
-    ///     Thrown if the path
-    ///     could not be retrieved.
-    /// </exception>
-    public static string GetPath(KnownFolder knownFolder)
-    {
-        return GetPath(knownFolder, false);
-    }
+    ];
 
     /// <summary>
     ///     Gets the current path to the specified known folder as currently configured. This does
@@ -58,7 +43,7 @@ public static class KnownFolders
     ///     Thrown if the path
     ///     could not be retrieved.
     /// </exception>
-    public static string GetPath(KnownFolder knownFolder, bool defaultUser)
+    public static string GetPath(KnownFolder knownFolder, bool defaultUser = false)
     {
         return GetPath(knownFolder, KnownFolderFlags.DontVerify, defaultUser);
     }

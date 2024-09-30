@@ -15,15 +15,10 @@ namespace wumgr.Common;
 
 #endregion
 
-internal struct Lastinputinfo
+internal struct Lastinputinfo(uint dwTime)
 {
     public uint CbSize;
-    public uint DwTime;
-
-    public Lastinputinfo(uint dwTime)
-    {
-        DwTime = dwTime;
-    }
+    public readonly uint DwTime = dwTime;
 }
 
 internal class MiscFunc

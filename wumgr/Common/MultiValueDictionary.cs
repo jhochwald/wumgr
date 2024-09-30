@@ -11,8 +11,7 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 {
     public void Add(TKey key, TValue value)
     {
-        List<TValue> container = null;
-        if (!TryGetValue(key, out container))
+        if (!TryGetValue(key, out List<TValue> container))
         {
             container = new List<TValue>();
             base.Add(key, container);
@@ -24,15 +23,13 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
     public bool ContainsValue(TKey key, TValue value)
     {
         bool toReturn = false;
-        List<TValue> values = null;
-        if (TryGetValue(key, out values)) toReturn = values.Contains(value);
+        if (TryGetValue(key, out List<TValue> values)) toReturn = values.Contains(value);
         return toReturn;
     }
 
     public void Remove(TKey key, TValue value)
     {
-        List<TValue> container = null;
-        if (TryGetValue(key, out container))
+        if (TryGetValue(key, out List<TValue> container))
         {
             container.Remove(value);
             if (container.Count <= 0) Remove(key);
@@ -41,8 +38,7 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 
     public List<TValue> GetValues(TKey key, bool returnEmptySet = true)
     {
-        List<TValue> toReturn = null;
-        if (!TryGetValue(key, out toReturn) && returnEmptySet) toReturn = new List<TValue>();
+        if (!TryGetValue(key, out List<TValue> toReturn) && returnEmptySet) toReturn = new List<TValue>();
         return toReturn;
     }
 

@@ -63,12 +63,14 @@ internal class UpdateDownloader
             _mCurTask.Finished += OnFinished;
             if (_mCurTask.Start())
                 return;
-            // Failedto start this task lets try an otehr one
+            // Failed to start this task lets try another one
             _mCurrentTask++;
         }
 
-        FinishedEventArgs args = new();
-        args.Downloads = _mDownloads;
+        FinishedEventArgs args = new()
+        {
+            Downloads = _mDownloads
+        };
         _mDownloads = null;
         args.Updates = _mUpdates;
         _mUpdates = null;
