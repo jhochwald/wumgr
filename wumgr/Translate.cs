@@ -134,7 +134,7 @@ public static class Translate
         mStrings.Add("msg_disable_au", "For the new configuration to fully take effect a reboot is required.");
         mStrings.Add("lbl_all", "Select All");
         mStrings.Add("lbl_group", "Group Updates");
-        mStrings.Add("lbl_patreon", "Support WuMgr on Patreon");
+        mStrings.Add("lbl_patreon", "Original project site");
         mStrings.Add("lbl_github", "Visit WuMgr on GitHub");
 
         string langINI = Program.appPath + @"\Translation.ini";
@@ -164,7 +164,7 @@ public static class Translate
         {
             string str = id;
             mStrings.TryGetValue(id, out str);
-            return string.Format(str, args);
+            return string.Format(str!, args);
         }
         catch
         {

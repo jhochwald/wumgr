@@ -18,14 +18,14 @@ namespace wumgr;
 
 internal static class Program
 {
-    public static string[] args;
-    public static bool mConsole;
+    private static string[] args;
+    private static bool mConsole;
     public static string mVersion = "0.0";
     public static string mName = "Update Manager for Windows";
     private static readonly string nTaskName = "WuMgrNoUAC";
     public static string appPath = "";
     public static string wrkPath = "";
-    public static WuAgent Agent;
+    private static WuAgent Agent;
     public static PipeIPC ipc;
 
     private static string GetINIPath()
@@ -56,9 +56,9 @@ internal static class Program
         }
 
         if (TestArg("-dbg_wait"))
-            MessageBox.Show("Waiting for debugger. (press ok when attached)");
+            MessageBox.Show(@"Waiting for debugger. (press ok when attached)");
 
-        Console.WriteLine("Starting...");
+        Console.WriteLine(@"Starting...");
 
         appPath = Path.GetDirectoryName(Application.ExecutablePath);
         Assembly assembly = Assembly.GetExecutingAssembly();
@@ -77,7 +77,7 @@ internal static class Program
 
         ipc = new PipeIPC("wumgr_pipe");
 
-        var client = ipc.Connect(100);
+        PipeIPC.PipeClient client = ipc.Connect(100);
         if (client != null)
         {
             AppLog.Line("Application is already running.");
@@ -90,7 +90,7 @@ internal static class Program
 
         if (!MiscFunc.IsAdministrator() && !MiscFunc.IsDebugging())
         {
-            Console.WriteLine("Trying to get admin privileges...");
+            Console.WriteLine(@"Trying to get admin privileges...");
 
             if (SkipUacRun())
             {
@@ -100,9 +100,9 @@ internal static class Program
 
             if (!MiscFunc.IsRunningAsUwp())
             {
-                Console.WriteLine("Trying to start with 'runas'...");
+                Console.WriteLine(@"Trying to start with 'runas'...");
                 // Restart program and run as admin
-                var exeName = Process.GetCurrentProcess().MainModule.FileName;
+                string exeName = Process.GetCurrentProcess().MainModule!.FileName;
                 string arguments = "\"" + string.Join("\" \"", args) + "\"";
                 ProcessStartInfo startInfo = new(exeName, arguments);
                 startInfo.UseShellExecute = true;
@@ -125,9 +125,8 @@ internal static class Program
         {
             Console.WriteLine("Can't write to default working directory.");
 
-            string downloadFolder = KnownFolders.GetPath(KnownFolder.Downloads);
-            if (downloadFolder == null)
-                downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads";
+            string downloadFolder = KnownFolders.GetPath(KnownFolder.Downloads) ??
+                                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads";
 
             wrkPath = downloadFolder + @"\WuMgr";
             try
@@ -141,34 +140,14 @@ internal static class Program
             }
         }
 
-        /*switch(FileOps.TestFileAdminSec(mINIPath))
-        {
-            case 0:
-                AppLog.Line("Warning wumgr.ini was writable by non administrative users, it was renamed to wumgr.ini.old and replaced with a empty one.\r\n");
-                if (!FileOps.MoveFile(mINIPath, mINIPath + ".old", true))
-                    return;
-                goto case 2;
-            case 2: // file missing, create
-                FileOps.SetFileAdminSec(mINIPath);
-                break;
-            case 1: // every thign's fine ini file is only writable by admins
-                break;
-        }*/
-
         AppLog.Line("Working Directory: {0}", wrkPath);
-
         Agent = new WuAgent();
-
         ExecOnStart();
-
         Agent.Init();
-
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new WuMgr());
-
         Agent.UnInit();
-
         ExecOnClose();
     }
 
@@ -196,10 +175,10 @@ internal static class Program
             Agent.EnableWuAuServ(false);
 
         // Note: With the UAC bypass the onclose parameter can be used for a local privilege escalation exploit
-        if (!TestArg("-NoUAC"))
-            for (int i = 0; i < args.Length; i++)
-                if (args[i].Equals("-onclose", StringComparison.CurrentCultureIgnoreCase))
-                    DoExec(PrepExec(args[++i]));
+        if (TestArg("-NoUAC")) return;
+        for (int i = 0; i < args.Length; i++)
+            if (args[i].Equals("-onclose", StringComparison.CurrentCultureIgnoreCase))
+                DoExec(PrepExec(args[++i]));
     }
 
     public static ProcessStartInfo PrepExec(string command, bool silent = true)
@@ -209,11 +188,11 @@ internal static class Program
         if (command.Length > 0 && command.Substring(0, 1) == "\"")
         {
             command = command.Remove(0, 1).Trim();
-            pos = command.IndexOf("\"");
+            pos = command.IndexOf("\"", StringComparison.Ordinal);
         }
         else
         {
-            pos = command.IndexOf(" ");
+            pos = command.IndexOf(" ", StringComparison.Ordinal);
         }
 
         string exec;
@@ -228,16 +207,16 @@ internal static class Program
             exec = command;
         }
 
-        ProcessStartInfo startInfo = new();
-        startInfo.FileName = exec;
-        startInfo.Arguments = arguments;
-        if (silent)
+        ProcessStartInfo startInfo = new()
         {
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.UseShellExecute = false;
-            startInfo.CreateNoWindow = true;
-        }
+            FileName = exec,
+            Arguments = arguments
+        };
+        if (!silent) return startInfo;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.UseShellExecute = false;
+        startInfo.CreateNoWindow = true;
 
         return startInfo;
     }
@@ -266,7 +245,7 @@ internal static class Program
 
     public static void IniWriteValue(string Section, string Key, string Value, string INIPath = null)
     {
-        WritePrivateProfileString(Section, Key, Value, INIPath != null ? INIPath : GetINIPath());
+        WritePrivateProfileString(Section, Key, Value, INIPath ?? GetINIPath());
     }
 
     [DllImport("kernel32")]
@@ -277,14 +256,14 @@ internal static class Program
     {
         char[] chars = new char[8193];
         int size = GetPrivateProfileString(Section, Key, Default, chars, 8193,
-            INIPath != null ? INIPath : GetINIPath());
+            INIPath ?? GetINIPath());
         return new string(chars, 0, size);
     }
 
     public static string[] IniEnumSections(string INIPath = null)
     {
         char[] chars = new char[8193];
-        int size = GetPrivateProfileString(null, null, null, chars, 8193, INIPath != null ? INIPath : GetINIPath());
+        int size = GetPrivateProfileString(null, null, null, chars, 8193, INIPath ?? GetINIPath());
         return new string(chars, 0, size).Split('\0');
     }
 
@@ -312,7 +291,7 @@ internal static class Program
 
     public static void AutoStart(bool enable)
     {
-        var subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+        RegistryKey subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
         if (enable)
         {
             string value = "\"" + Assembly.GetExecutingAssembly().Location + "\"" + " -tray";
@@ -326,8 +305,8 @@ internal static class Program
 
     public static bool IsAutoStart()
     {
-        var subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
-        return subKey != null && subKey.GetValue("wumgr") != null;
+        RegistryKey subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
+        return subKey?.GetValue("wumgr") != null;
     }
 
     public static bool IsSkipUacRun()
@@ -340,8 +319,9 @@ internal static class Program
             IRegisteredTask task = folder.GetTask(nTaskName);
             return task != null;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return false;
@@ -357,18 +337,15 @@ internal static class Program
             if (is_enable)
             {
                 string exePath = Assembly.GetExecutingAssembly().Location;
-
                 ITaskDefinition task = service.NewTask(0);
                 task.RegistrationInfo.Author = "WuMgr";
                 task.Principal.RunLevel = _TASK_RUNLEVEL.TASK_RUNLEVEL_HIGHEST;
-
                 task.Settings.AllowHardTerminate = false;
                 task.Settings.StartWhenAvailable = false;
                 task.Settings.DisallowStartIfOnBatteries = false;
                 task.Settings.StopIfGoingOnBatteries = false;
                 task.Settings.MultipleInstances = _TASK_INSTANCES_POLICY.TASK_INSTANCES_PARALLEL;
                 task.Settings.ExecutionTimeLimit = "PT0S";
-
                 IExecAction action = (IExecAction)task.Actions.Create(_TASK_ACTION_TYPE.TASK_ACTION_EXEC);
                 action.Path = exePath;
                 action.WorkingDirectory = appPath;
@@ -416,15 +393,12 @@ internal static class Program
             service.Connect();
             ITaskFolder folder = service.GetFolder(@"\"); // root
             IRegisteredTask task = folder.GetTask(nTaskName);
-
             silent = false;
             AppLog.Line("Trying to SkipUAC ...");
-
             IExecAction action = (IExecAction)task.Definition.Actions[1];
             if (action.Path.Equals(Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase))
             {
                 string arguments = "\"" + string.Join("\" \"", args) + "\"";
-
                 IRunningTask running_Task = task.RunEx(arguments, (int)_TASK_RUN_FLAGS.TASK_RUN_NO_FLAGS, 0, null);
 
                 for (int i = 0; i < 5; i++)

@@ -15,12 +15,12 @@ namespace wumgr;
 
 internal class UpdateInstaller
 {
+    private readonly Dispatcher mDispatcher;
     private bool Canceled;
     private bool DoInstall = true;
     private int ErrorCount;
     private MultiValueDictionary<string, string> mAllFiles;
     private int mCurrentTask;
-    private readonly Dispatcher mDispatcher;
     private Thread mThread;
     private List<MsUpdate> mUpdates;
     private bool RebootRequired;
@@ -147,7 +147,7 @@ internal class UpdateInstaller
                         ZipFile.ExtractToDirectory(File, path);
 
                     string supportedExtensions = "*.msu,*.msi,*.cab,*.exe";
-                    var foundFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+                    IEnumerable<string> foundFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
                         .Where(s => supportedExtensions.Contains(Path.GetExtension(s).ToLower()));
                     if (foundFiles.Count() == 0)
                         throw new FileNotFoundException("Expected file not found in zip");

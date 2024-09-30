@@ -11,15 +11,15 @@ internal class HttpTask
 {
     //const int DefaultTimeout = 2 * 60 * 1000; // 2 minutes timeout
     private const int BUFFER_SIZE = 1024;
+    private readonly Dispatcher mDispatcher;
+    private readonly string mUrl;
     private byte[] BufferRead;
     private bool Canceled;
     private DateTime lastTime;
-    private readonly Dispatcher mDispatcher;
     private int mLength = -1;
     private int mOffset = -1;
 
     private int mOldPercent = -1;
-    private readonly string mUrl;
     private HttpWebRequest request;
     private HttpWebResponse response;
     private Stream streamResponse;
@@ -203,7 +203,7 @@ internal class HttpTask
                 else if (key.Equals("Content-Disposition", StringComparison.CurrentCultureIgnoreCase))
                 {
                     string cd = task.response.Headers[key];
-                    fileName = cd.Substring(cd.IndexOf("filename=") + 9).Replace("\"", "");
+                    fileName = cd.Substring(cd.IndexOf("filename=", StringComparison.Ordinal) + 9).Replace("\"", "");
                 }
                 else if (key.Equals("Last-Modified", StringComparison.CurrentCultureIgnoreCase))
                 {

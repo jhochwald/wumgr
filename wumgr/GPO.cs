@@ -37,7 +37,7 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
+            RegistryKey subKey = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
             switch (option)
             {
                 case AUOptions.Default: //Automatic(default)
@@ -77,8 +77,9 @@ internal class GPO
                 subKey.DeleteValue("ScheduledInstallTime", false);
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -87,11 +88,11 @@ internal class GPO
         AUOptions option = AUOptions.Default;
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(mWuGPO + @"\AU", false);
-            object value_no = subKey == null ? null : subKey.GetValue("NoAutoUpdate");
+            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(mWuGPO + @"\AU", false);
+            object value_no = subKey?.GetValue("NoAutoUpdate");
             if (value_no == null || (int)value_no == 0)
             {
-                object value_au = subKey == null ? null : subKey.GetValue("AUOptions");
+                object value_au = subKey?.GetValue("AUOptions");
                 switch (value_au == null ? 0 : (int)value_au)
                 {
                     case 0:
@@ -116,7 +117,7 @@ internal class GPO
                 option = AUOptions.Disabled;
             }
 
-            object value_day = subKey.GetValue("ScheduledInstallDay");
+            object value_day = subKey!.GetValue("ScheduledInstallDay");
             day = value_day != null ? (int)value_day : 0;
             object value_time = subKey.GetValue("ScheduledInstallTime");
             time = value_time != null ? (int)value_time : 0;
@@ -134,7 +135,7 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
+            RegistryKey subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
             switch (option)
             {
                 case 0: // CheckState.Unchecked:
@@ -148,8 +149,9 @@ internal class GPO
                     break;
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -157,8 +159,8 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(mWuGPO, false);
-            object value_drv = subKey == null ? null : subKey.GetValue("ExcludeWUDriversInQualityUpdate");
+            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(mWuGPO, false);
+            object value_drv = subKey?.GetValue("ExcludeWUDriversInQualityUpdate");
 
             if (value_drv == null)
                 return 2; // CheckState.Indeterminate;
@@ -167,8 +169,9 @@ internal class GPO
             //if ((int)value_drv == 0)
             return 1; // CheckState.Checked
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return 2;
@@ -178,7 +181,7 @@ internal class GPO
     {
         try
         {
-            var subKey =
+            RegistryKey subKey =
                 Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
                     true);
             if (hide)
@@ -186,8 +189,9 @@ internal class GPO
             else
                 subKey.DeleteValue("SettingsPageVisibility", false);
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -195,13 +199,14 @@ internal class GPO
     {
         try
         {
-            var subKey =
+            RegistryKey subKey =
                 Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer");
-            string value = subKey == null ? null : subKey.GetValue("SettingsPageVisibility", "").ToString();
-            return value.Contains("hide:windowsupdate");
+            string value = subKey?.GetValue("SettingsPageVisibility", "").ToString();
+            return value!.Contains("hide:windowsupdate");
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return false;
@@ -213,29 +218,30 @@ internal class GPO
         {
             if (block)
             {
-                var subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
+                RegistryKey subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
                 subKey.SetValue("DoNotConnectToWindowsUpdateInternetLocations", 1);
                 subKey.SetValue("WUServer", "\" \"");
                 subKey.SetValue("WUStatusServer", "\" \"");
                 subKey.SetValue("UpdateServiceUrlAlternate", "\" \"");
 
-                var subKey2 = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
+                RegistryKey subKey2 = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
                 subKey2.SetValue("UseWUServer", 1);
             }
             else
             {
-                var subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
+                RegistryKey subKey = Registry.LocalMachine.CreateSubKey(mWuGPO, true);
                 subKey.DeleteValue("DoNotConnectToWindowsUpdateInternetLocations", false);
                 subKey.DeleteValue("WUServer", false);
                 subKey.DeleteValue("WUStatusServer", false);
                 subKey.DeleteValue("UpdateServiceUrlAlternate", false);
 
-                var subKey2 = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
+                RegistryKey subKey2 = Registry.LocalMachine.CreateSubKey(mWuGPO + @"\AU", true);
                 subKey2.DeleteValue("UseWUServer", false);
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -243,13 +249,13 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(mWuGPO, false);
+            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(mWuGPO, false);
 
             object value_block =
-                subKey == null ? null : subKey.GetValue("DoNotConnectToWindowsUpdateInternetLocations");
+                subKey?.GetValue("DoNotConnectToWindowsUpdateInternetLocations");
 
-            var subKey2 = Registry.LocalMachine.OpenSubKey(mWuGPO + @"\AU", false);
-            object value_wsus = subKey2 == null ? null : subKey2.GetValue("UseWUServer");
+            RegistryKey subKey2 = Registry.LocalMachine.OpenSubKey(mWuGPO + @"\AU", false);
+            object value_wsus = subKey2?.GetValue("UseWUServer");
 
             if (value_block != null && (int)value_block == 1 && value_wsus != null && (int)value_wsus == 1)
                 return 1; // CheckState.Checked;
@@ -257,8 +263,9 @@ internal class GPO
                 return 0; // CheckState.Unchecked;
             return 2; // CheckState.Indeterminate;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return 2;
@@ -268,15 +275,16 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", true);
+            RegistryKey subKey = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", true);
             //var subKey = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate", true);
             if (disable)
                 subKey.SetValue("AutoDownload", 2);
             else
                 subKey.DeleteValue("AutoDownload", false); // subKey.SetValue("AutoDownload", 4);
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -284,13 +292,14 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", false);
+            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", false);
             //var subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate");
-            object value_block = subKey == null ? null : subKey.GetValue("AutoDownload");
+            object value_block = subKey?.GetValue("AutoDownload");
             return value_block != null && (int)value_block == 2;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return false;
@@ -311,8 +320,9 @@ internal class GPO
                 ConfigSvc("WaaSMedicSvc", ServiceStartMode.Manual); // Windows Update Medic Service
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -339,7 +349,7 @@ internal class GPO
 
         svc.Close();
 
-        var subKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name,
+        RegistryKey subKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name,
             RegistryKeyPermissionCheck.ReadWriteSubTree,
             RegistryRights.SetValue | RegistryRights.ChangePermissions | RegistryRights.TakeOwnership);
         if (subKey == null)
@@ -350,7 +360,7 @@ internal class GPO
 
         subKey.SetValue("Start", (int)mode);
 
-        var ac = subKey.GetAccessControl();
+        RegistrySecurity ac = subKey.GetAccessControl();
         AuthorizationRuleCollection
             rules = ac.GetAccessRules(true, true, typeof(SecurityIdentifier)); // get as SID not string
         // cleanup old roule
@@ -373,12 +383,13 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name, false);
+            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + name, false);
             return subKey == null || MiscFunc.parseInt(subKey.GetValue("Start", "-1").ToString()) ==
                 (int)ServiceStartMode.Disabled;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return false;
@@ -388,7 +399,8 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
+            RegistryKey subKey =
+                Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
             if (subKey == null)
                 return Respect.Unknown;
             //string edition = subKey.GetValue("EditionID", "").ToString();
@@ -407,8 +419,9 @@ internal class GPO
                     return Respect.None;
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return Respect.Unknown;
@@ -418,7 +431,8 @@ internal class GPO
     {
         try
         {
-            var subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
+            RegistryKey subKey =
+                Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
             if (subKey == null)
                 return 0.0f;
             //string Majorversion = subKey.GetValue("CurrentMajorVersionNumber", "0").ToString(); // this is 10 on 10 but not present on earlier editions
@@ -458,8 +472,9 @@ internal class GPO
 
             return version_num;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
 
         return 0.0f;

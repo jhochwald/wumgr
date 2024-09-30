@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using WUApiLib;
 using wumgr.Properties;
-//this is required to use the Interfaces given by microsoft. 
 
 #endregion
 
@@ -19,7 +19,7 @@ namespace wumgr;
 
 public partial class WuMgr : Form
 {
-    public const int WM_SYSCOMMAND = 0x112;
+    private const int WM_SYSCOMMAND = 0x112;
 
     public const int MF_BITMAP = 0x00000004;
     public const int MF_CHECKED = 0x00000008;
@@ -29,47 +29,33 @@ public partial class WuMgr : Form
     public const int MF_MENUBARBREAK = 0x00000020;
     public const int MF_MENUBREAK = 0x00000040;
     public const int MF_OWNERDRAW = 0x00000100;
-    public const int MF_POPUP = 0x00000010;
-    public const int MF_SEPARATOR = 0x00000800;
+    private const int MF_POPUP = 0x00000010;
+    private const int MF_SEPARATOR = 0x00000800;
     public const int MF_STRING = 0x00000000;
     public const int MF_UNCHECKED = 0x00000000;
-
-    public const int MF_BYPOSITION = 0x400;
-
+    private const int MF_BYPOSITION = 0x400;
     public const int MF_BYCOMMAND = 0x000;
     //public const Int32 MF_REMOVE = 0x1000;
-
-    public const int MYMENU_ABOUT = 1000;
-
+    private const int MYMENU_ABOUT = 1000;
     private static Timer mTimer;
-
     private readonly WuAgent agent;
-
+    private readonly int IdleDelay;
+    private readonly GPO.Respect mGPORespect = GPO.Respect.Unknown;
+    private readonly float mSearchBoxHeight;
+    private readonly MenuItem mToolsMenu;
+    private readonly float mWinVersion;
     private bool allowshowdisplay = true;
-
     private AutoUpdateOptions AutoUpdate = AutoUpdateOptions.No;
     private bool bUpdateList;
-
     private bool checkChecks;
-
     private UpdateLists CurrentList = UpdateLists.UpdateHistory;
     private bool doUpdte;
-    private readonly int IdleDelay;
     private bool ignoreChecks;
     private DateTime LastBaloon = DateTime.MinValue;
     private DateTime LastCheck = DateTime.MaxValue;
-    private readonly GPO.Respect mGPORespect = GPO.Respect.Unknown;
-
-    private readonly float mSearchBoxHeight;
     private string mSearchFilter;
-
     private bool mSuspendUpdate;
-
-    private readonly MenuItem mToolsMenu;
-    private readonly float mWinVersion;
-
     private bool ResultShown;
-
     private bool suspendChange;
     private MenuItem wuauMenu;
 
@@ -87,7 +73,7 @@ public partial class WuMgr : Form
         }
 
         if (!MiscFunc.IsRunningAsUwp())
-            Text = string.Format("{0} v{1} by David Xanatos", Program.mName, Program.mVersion);
+            Text = $"{Program.mName} v{Program.mVersion} by David Xanatos";
 
         Localize();
 
@@ -390,8 +376,7 @@ public partial class WuMgr : Form
                 if (LastBaloon < DateTime.Now.AddHours(-4))
                 {
                     LastBaloon = DateTime.Now;
-                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.fmt("cap_new_upd"),
-                        Translate.fmt("msg_new_upd", Program.mName, agent.mPendingUpdates.Count), ToolTipIcon.Info);
+                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.fmt("cap_new_upd"), Translate.fmt("msg_new_upd", Program.mName, string.Join(Environment.NewLine, agent.mPendingUpdates.Select(x => $"- {x.Title}"))), ToolTipIcon.Info);
                 }
         }
 
@@ -1569,7 +1554,7 @@ public partial class WuMgr : Form
 
     private void lblPatreon_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
-        Process.Start("https://www.patreon.com/DavidXanatos");
+        Process.Start("https://github.com/DavidXanatos/wumgr");
     }
 
     private enum AutoUpdateOptions

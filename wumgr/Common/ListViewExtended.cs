@@ -77,7 +77,7 @@ public class ListViewExtended : ListView
     {
         if (Environment.OSVersion.Version.Major < 6) //Only Vista and forward allows collaps of ListViewGroups
             return;
-        if (lstvwgrp == null || lstvwgrp.ListView == null)
+        if (lstvwgrp?.ListView == null)
             return;
         if (lstvwgrp.ListView.InvokeRequired)
         {
@@ -128,7 +128,7 @@ public class ListViewExtended : ListView
     {
         if (Environment.OSVersion.Version.Major < 6) //Only Vista and forward allows footer on ListViewGroups
             return;
-        if (lstvwgrp == null || lstvwgrp.ListView == null)
+        if (lstvwgrp?.ListView == null)
             return;
         if (lstvwgrp.ListView.InvokeRequired)
         {

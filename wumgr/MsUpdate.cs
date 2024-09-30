@@ -39,7 +39,6 @@ public class MsUpdate
     public DateTime Date = DateTime.MinValue;
     public string Description = "";
     public StringCollection Downloads = new();
-
     private IUpdate Entry;
     public int HResult;
     public string KB = "";
@@ -48,7 +47,6 @@ public class MsUpdate
     public UpdateState State = UpdateState.None;
     public string SupportUrl = "";
     public string Title = "";
-
     public string UUID = "";
 
     public MsUpdate()
@@ -119,8 +117,9 @@ public class MsUpdate
             ResultCode = (int)update.ResultCode;
             HResult = update.HResult;
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 

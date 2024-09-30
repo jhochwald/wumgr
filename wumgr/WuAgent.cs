@@ -9,6 +9,7 @@ using System.ServiceProcess;
 using System.Windows.Threading;
 using WUApiLib;
 using StringCollection = System.Collections.Specialized.StringCollection;
+
 //this is required to use the Interfaces given by microsoft. 
 
 #endregion
@@ -62,6 +63,11 @@ internal class WuAgent
         WinStorDCat2GUID =
             "855e8a7c-ecb4-4ca3-b045-1dfa50104289"; // Windows Store (DCat Prod) - Insider Updates for Store Apps
 
+    private readonly UpdateDownloader mUpdateDownloader;
+    private readonly UpdateInstaller mUpdateInstaller;
+    private readonly UpdateServiceManager mUpdateServiceManager;
+    private readonly UpdateSession mUpdateSession;
+
     public string dlPath;
 
     private UpdateCallback mCallback;
@@ -85,13 +91,8 @@ internal class WuAgent
 
     public StringCollection mServiceList = new();
 
-    private readonly UpdateDownloader mUpdateDownloader;
-
     public List<MsUpdate> mUpdateHistory = new();
-    private readonly UpdateInstaller mUpdateInstaller;
     private IUpdateSearcher mUpdateSearcher;
-    private readonly UpdateServiceManager mUpdateServiceManager;
-    private readonly UpdateSession mUpdateSession;
 
     public WuAgent()
     {
@@ -110,9 +111,9 @@ internal class WuAgent
         dlPath = Program.wrkPath + @"\Updates";
 
         WindowsUpdateAgentInfo info = new();
-        var currentVersion = info.GetInfo("ApiMajorVersion").ToString().Trim() + "." +
-                             info.GetInfo("ApiMinorVersion").ToString().Trim() + " (" +
-                             info.GetInfo("ProductVersionString").ToString().Trim() + ")";
+        dynamic currentVersion = info.GetInfo("ApiMajorVersion").ToString().Trim() + "." +
+                                 info.GetInfo("ApiMinorVersion").ToString().Trim() + " (" +
+                                 info.GetInfo("ProductVersionString").ToString().Trim() + ")";
         AppLog.Line("Windows Update Agent Version: {0}", currentVersion);
 
         mUpdateSession = new UpdateSession();
@@ -368,7 +369,7 @@ internal class WuAgent
             List<UpdateDownloader.Task> downloads = new();
             UpdateDownloader.Task download = new();
             download.Url =
-                Program.IniReadValue("Options", "OfflineCab", "http://go.microsoft.com/fwlink/p/?LinkID=74689");
+                Program.IniReadValue("Options", "OfflineCab", "https://go.microsoft.com/fwlink/p/?LinkID=74689");
             download.Path = dlPath;
             download.FileName = "wsusscn2.cab";
             downloads.Add(download);
@@ -1120,8 +1121,9 @@ internal class WuAgent
             {
                 Update.Date = DateTime.Parse(Program.IniReadValue(Update.KB, "Date", "", INIPath));
             }
-            catch
+            catch (Exception e)
             {
+                Console.WriteLine(e.Message);
             }
 
             Update.Size = MiscFunc.parseInt(Program.IniReadValue(Update.KB, "Size", "0", INIPath));

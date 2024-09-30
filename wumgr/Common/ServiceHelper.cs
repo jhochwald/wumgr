@@ -34,23 +34,23 @@ public static class ServiceHelper
     public static void ChangeStartMode(ServiceController svc, ServiceStartMode mode)
     {
         //var scManagerHandle = OpenSCManager(null, null, SC_MANAGER_ALL_ACCESS);
-        var scManagerHandle = OpenSCManager(null, null, SC_MANAGER_CONNECT + SC_MANAGER_ENUMERATE_SERVICE);
+        IntPtr scManagerHandle = OpenSCManager(null, null, SC_MANAGER_CONNECT + SC_MANAGER_ENUMERATE_SERVICE);
         if (scManagerHandle == IntPtr.Zero) throw new ExternalException("Open Service Manager Error");
 
-        var serviceHandle = OpenService(
+        IntPtr serviceHandle = OpenService(
             scManagerHandle,
             svc.ServiceName,
             SERVICE_QUERY_CONFIG | SERVICE_CHANGE_CONFIG);
 
         if (serviceHandle == IntPtr.Zero) throw new ExternalException("Open Service Error");
 
-        var result = ChangeServiceConfig(serviceHandle, SERVICE_NO_CHANGE, (uint)mode, SERVICE_NO_CHANGE, null, null,
+        bool result = ChangeServiceConfig(serviceHandle, SERVICE_NO_CHANGE, (uint)mode, SERVICE_NO_CHANGE, null, null,
             IntPtr.Zero, null, null, null, null);
 
         if (result == false)
         {
             int nError = Marshal.GetLastWin32Error();
-            var win32Exception = new Win32Exception(nError);
+            Win32Exception win32Exception = new(nError);
             throw new ExternalException("Could not change service start type: " + win32Exception.Message);
         }
 

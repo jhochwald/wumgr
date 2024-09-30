@@ -222,7 +222,7 @@
             this.lblPatreon.Size = new System.Drawing.Size(234, 13);
             this.lblPatreon.TabIndex = 0;
             this.lblPatreon.TabStop = true;
-            this.lblPatreon.Text = "Support WuMgr on Patreon";
+            this.lblPatreon.Text = "Original project site";
             this.lblPatreon.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lblPatreon_LinkClicked);
             // 
             // updateView
