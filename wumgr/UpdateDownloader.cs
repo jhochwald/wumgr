@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using wumgr.Common;
 
 #endregion
 
@@ -10,24 +11,23 @@ namespace wumgr;
 
 internal class UpdateDownloader
 {
-    private bool Canceled;
-    private int mCurrentTask;
-    private HttpTask mCurTask;
+    private bool _canceled;
+    private int _mCurrentTask;
+    private HttpTask _mCurTask;
+    private List<Task> _mDownloads;
+    private string _mInfo = "";
+    private List<MsUpdate> _mUpdates;
 
-    private List<Task> mDownloads;
-    private string mInfo = "";
-    private List<MsUpdate> mUpdates;
-
-    public bool Download(List<Task> Downloads, List<MsUpdate> Updates = null)
+    public bool Download(List<Task> downloads, List<MsUpdate> updates = null)
     {
-        if (mDownloads != null)
+        if (_mDownloads != null)
             return false;
 
-        Canceled = false;
-        mDownloads = Downloads;
-        mCurrentTask = 0;
-        mInfo = "";
-        mUpdates = Updates;
+        _canceled = false;
+        _mDownloads = downloads;
+        _mCurrentTask = 0;
+        _mInfo = "";
+        _mUpdates = updates;
 
         DownloadNextFile();
         return true;
@@ -35,77 +35,77 @@ internal class UpdateDownloader
 
     public bool IsBusy()
     {
-        return mDownloads != null;
+        return _mDownloads != null;
     }
 
     public void CancelOperations()
     {
-        if (mCurTask != null)
-            mCurTask.Cancel();
+        if (_mCurTask != null)
+            _mCurTask.Cancel();
     }
 
     private void DownloadNextFile()
     {
-        while (!Canceled && mDownloads.Count > mCurrentTask)
+        while (!_canceled && _mDownloads.Count > _mCurrentTask)
         {
-            Task Download = mDownloads[mCurrentTask];
+            Task download = _mDownloads[_mCurrentTask];
 
-            if (mUpdates != null)
-                foreach (MsUpdate update in mUpdates)
-                    if (update.KB.Equals(Download.KB))
+            if (_mUpdates != null)
+                foreach (MsUpdate update in _mUpdates)
+                    if (update.Kb.Equals(download.Kb))
                     {
-                        mInfo = update.Title;
+                        _mInfo = update.Title;
                         break;
                     }
 
-            mCurTask = new HttpTask(Download.Url, Download.Path, Download.FileName, true); // todo update flag
-            mCurTask.Progress += OnProgress;
-            mCurTask.Finished += OnFinished;
-            if (mCurTask.Start())
+            _mCurTask = new HttpTask(download.Url, download.Path, download.FileName, true); // todo update flag
+            _mCurTask.Progress += OnProgress;
+            _mCurTask.Finished += OnFinished;
+            if (_mCurTask.Start())
                 return;
             // Failedto start this task lets try an otehr one
-            mCurrentTask++;
+            _mCurrentTask++;
         }
 
         FinishedEventArgs args = new();
-        args.Downloads = mDownloads;
-        mDownloads = null;
-        args.Updates = mUpdates;
-        mUpdates = null;
+        args.Downloads = _mDownloads;
+        _mDownloads = null;
+        args.Updates = _mUpdates;
+        _mUpdates = null;
         Finished?.Invoke(this, args);
     }
 
     private void OnProgress(object sender, HttpTask.ProgressEventArgs args)
     {
         Progress?.Invoke(this,
-            new WuAgent.ProgressArgs(mDownloads.Count,
-                mDownloads.Count == 0 ? 0 : (100 * mCurrentTask + args.Percent) / mDownloads.Count, mCurrentTask + 1,
-                args.Percent, mInfo));
+            new WuAgent.ProgressArgs(_mDownloads.Count,
+                _mDownloads.Count == 0 ? 0 : (100 * _mCurrentTask + args.Percent) / _mDownloads.Count, _mCurrentTask + 1,
+                args.Percent, _mInfo));
     }
 
     private void OnFinished(object sender, HttpTask.FinishedEventArgs args)
     {
         if (!args.Cancelled)
         {
-            Task Download = mDownloads[mCurrentTask];
+            Task download = _mDownloads[_mCurrentTask];
             if (!args.Success)
             {
                 AppLog.Line("Download failed: {0}", args.GetError());
-                if (mCurTask.DlName != null && File.Exists(mCurTask.DlPath + @"\" + mCurTask.DlName))
+                if (_mCurTask.DlName != null && File.Exists(_mCurTask.DlPath + @"\" + _mCurTask.DlName))
                     AppLog.Line("An older version is present and will be used.");
                 else
-                    Download.Failed = true;
+                    download.Failed = true;
             }
 
-            Download.FileName = mCurTask.DlName;
-            mDownloads[mCurrentTask] = Download;
-            mCurTask = null;
+            download.FileName = _mCurTask.DlName;
+            _mDownloads[_mCurrentTask] = download;
+            _mCurTask = null;
 
-            mCurrentTask++;
+            _mCurrentTask++;
         }
         else
         {
-            Canceled = true;
+            _canceled = true;
         }
 
         DownloadNextFile();
@@ -121,7 +121,7 @@ internal class UpdateDownloader
         public string Path;
         public string FileName;
         public bool Failed;
-        public string KB;
+        public string Kb;
     }
 
     public class FinishedEventArgs : EventArgs

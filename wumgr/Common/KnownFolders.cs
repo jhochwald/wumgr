@@ -3,6 +3,10 @@
 using System;
 using System.Runtime.InteropServices;
 
+namespace wumgr.Common;
+
+
+
 #endregion
 
 /// <summary>
@@ -10,7 +14,7 @@ using System.Runtime.InteropServices;
 /// </summary>
 public static class KnownFolders
 {
-    private static readonly string[] _knownFolderGuids =
+    private static readonly string[] KnownFolderGuids =
     {
         "{56784854-C6CB-462B-8169-88E350ACB882}", // Contacts
         "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", // Desktop
@@ -62,7 +66,7 @@ public static class KnownFolders
     private static string GetPath(KnownFolder knownFolder, KnownFolderFlags flags,
         bool defaultUser)
     {
-        int result = SHGetKnownFolderPath(new Guid(_knownFolderGuids[(int)knownFolder]),
+        int result = SHGetKnownFolderPath(new Guid(KnownFolderGuids[(int)knownFolder]),
             (uint)flags, new IntPtr(defaultUser ? -1 : 0), out IntPtr outPath);
         if (result >= 0)
         {
@@ -83,7 +87,7 @@ public static class KnownFolders
     [Flags]
     private enum KnownFolderFlags : uint
     {
-        SimpleIDList = 0x00000100,
+        SimpleIdList = 0x00000100,
         NotParentRelative = 0x00000200,
         DefaultPath = 0x00000400,
         Init = 0x00000800,

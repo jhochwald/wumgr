@@ -11,6 +11,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using TaskScheduler;
+using wumgr.Common;
 
 #endregion
 
@@ -18,24 +19,24 @@ namespace wumgr;
 
 internal static class Program
 {
-    private static string[] args;
-    private static bool mConsole;
-    public static string mVersion = "0.0";
-    public static string mName = "Update Manager for Windows";
-    private static readonly string nTaskName = "WuMgrNoUAC";
-    public static string appPath = "";
-    public static string wrkPath = "";
-    private static WuAgent Agent;
-    public static PipeIPC ipc;
+    private static string[] _args;
+    private static bool _mConsole;
+    public static string MVersion = "0.0";
+    public static readonly string MName = "Update Manager for Windows";
+    private const string MF_N_TASK_NAME = "WuMgrNoUAC";
+    public static string AppPath = "";
+    public static string WrkPath = "";
+    private static WuAgent _agent;
+    public static PipeIpc Ipc;
 
-    private static string GetINIPath()
+    private static string GetIniPath()
     {
-        return wrkPath + @"\wumgr.ini";
+        return WrkPath + @"\wumgr.ini";
     }
 
     public static string GetToolsPath()
     {
-        return appPath + @"\Tools";
+        return AppPath + @"\Tools";
     }
 
 
@@ -43,11 +44,11 @@ internal static class Program
     ///     Der Haupteinstiegspunkt für die Anwendung.
     /// </summary>
     [STAThread]
-    private static void Main(string[] args)
+    private static void Main(string[] mainArgs)
     {
-        Program.args = args;
+        Program._args = mainArgs;
 
-        mConsole = WinConsole.Initialize(TestArg("-console"));
+        _mConsole = WinConsole.Initialize(TestArg("-console"));
 
         if (TestArg("-help") || TestArg("/?"))
         {
@@ -60,31 +61,31 @@ internal static class Program
 
         Console.WriteLine(@"Starting...");
 
-        appPath = Path.GetDirectoryName(Application.ExecutablePath);
+        AppPath = Path.GetDirectoryName(Application.ExecutablePath);
         Assembly assembly = Assembly.GetExecutingAssembly();
         FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-        mVersion = fvi.FileMajorPart + "." + fvi.FileMinorPart;
+        MVersion = fvi.FileMajorPart + "." + fvi.FileMinorPart;
         if (fvi.FileBuildPart != 0)
-            mVersion += (char)('a' + (fvi.FileBuildPart - 1));
+            MVersion += (char)('a' + (fvi.FileBuildPart - 1));
 
-        wrkPath = appPath;
+        WrkPath = AppPath;
 
         Translate.Load(IniReadValue("Options", "Lang"));
 
-        AppLog Log = new();
-        AppLog.Line("{0}, Version v{1} by David Xanatos", mName, mVersion);
+        AppLog log = new();
+        AppLog.Line("{0}, Version v{1} by David Xanatos", MName, MVersion);
         AppLog.Line("This Tool is Open Source under the GNU General Public License, Version 3\r\n");
 
-        ipc = new PipeIPC("wumgr_pipe");
+        Ipc = new PipeIpc("wumgr_pipe");
 
-        PipeIPC.PipeClient client = ipc.Connect(100);
+        PipeIpc.PipeClient client = Ipc.Connect(100);
         if (client != null)
         {
             AppLog.Line("Application is already running.");
             client.Send("show");
             string ret = client.Read(1000);
             if (!ret.Equals("ok", StringComparison.CurrentCultureIgnoreCase))
-                MessageBox.Show(Translate.fmt("msg_running"));
+                MessageBox.Show(Translate.Fmt("msg_running"));
             return;
         }
 
@@ -103,7 +104,7 @@ internal static class Program
                 Console.WriteLine(@"Trying to start with 'runas'...");
                 // Restart program and run as admin
                 string exeName = Process.GetCurrentProcess().MainModule!.FileName;
-                string arguments = "\"" + string.Join("\" \"", args) + "\"";
+                string arguments = "\"" + string.Join("\" \"", mainArgs) + "\"";
                 ProcessStartInfo startInfo = new(exeName, arguments);
                 startInfo.UseShellExecute = true;
                 startInfo.Verb = "runas";
@@ -121,64 +122,64 @@ internal static class Program
             }
         }
 
-        if (!FileOps.TestWrite(GetINIPath()))
+        if (!FileOps.TestWrite(GetIniPath()))
         {
             Console.WriteLine("Can't write to default working directory.");
 
             string downloadFolder = KnownFolders.GetPath(KnownFolder.Downloads) ??
                                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads";
 
-            wrkPath = downloadFolder + @"\WuMgr";
+            WrkPath = downloadFolder + @"\WuMgr";
             try
             {
-                if (!Directory.Exists(wrkPath))
-                    Directory.CreateDirectory(wrkPath);
+                if (!Directory.Exists(WrkPath))
+                    Directory.CreateDirectory(WrkPath);
             }
             catch
             {
-                MessageBox.Show(Translate.fmt("msg_ro_wrk_dir", wrkPath), mName);
+                MessageBox.Show(Translate.Fmt("msg_ro_wrk_dir", WrkPath), MName);
             }
         }
 
-        AppLog.Line("Working Directory: {0}", wrkPath);
-        Agent = new WuAgent();
+        AppLog.Line("Working Directory: {0}", WrkPath);
+        _agent = new WuAgent();
         ExecOnStart();
-        Agent.Init();
+        _agent.Init();
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new WuMgr());
-        Agent.UnInit();
+        _agent.UnInit();
         ExecOnClose();
     }
 
     private static void ExecOnStart()
     {
-        string ToolsINI = GetToolsPath() + @"\Tools.ini";
+        string toolsIni = GetToolsPath() + @"\Tools.ini";
 
-        if (int.Parse(IniReadValue("OnStart", "EnableWuAuServ", "0", ToolsINI)) != 0)
-            Agent.EnableWuAuServ();
+        if (int.Parse(IniReadValue("OnStart", "EnableWuAuServ", "0", toolsIni)) != 0)
+            _agent.EnableWuAuServ();
 
-        string OnStart = IniReadValue("OnStart", "Exec", "", ToolsINI);
-        if (OnStart.Length > 0)
-            DoExec(PrepExec(OnStart, MiscFunc.parseInt(IniReadValue("OnStart", "Silent", "1", ToolsINI)) != 0), true);
+        string onStart = IniReadValue("OnStart", "Exec", "", toolsIni);
+        if (onStart.Length > 0)
+            DoExec(PrepExec(onStart, MiscFunc.ParseInt(IniReadValue("OnStart", "Silent", "1", toolsIni)) != 0), true);
     }
 
     private static void ExecOnClose()
     {
-        string ToolsINI = GetToolsPath() + @"\Tools.ini";
+        string toolsIni = GetToolsPath() + @"\Tools.ini";
 
-        string OnClose = IniReadValue("OnClose", "Exec", "", ToolsINI);
-        if (OnClose.Length > 0)
-            DoExec(PrepExec(OnClose, MiscFunc.parseInt(IniReadValue("OnClose", "Silent", "1", ToolsINI)) != 0), true);
+        string onClose = IniReadValue("OnClose", "Exec", "", toolsIni);
+        if (onClose.Length > 0)
+            DoExec(PrepExec(onClose, MiscFunc.ParseInt(IniReadValue("OnClose", "Silent", "1", toolsIni)) != 0), true);
 
-        if (int.Parse(IniReadValue("OnClose", "DisableWuAuServ", "0", ToolsINI)) != 0)
-            Agent.EnableWuAuServ(false);
+        if (int.Parse(IniReadValue("OnClose", "DisableWuAuServ", "0", toolsIni)) != 0)
+            _agent.EnableWuAuServ(false);
 
         // Note: With the UAC bypass the onclose parameter can be used for a local privilege escalation exploit
         if (TestArg("-NoUAC")) return;
-        for (int i = 0; i < args.Length; i++)
-            if (args[i].Equals("-onclose", StringComparison.CurrentCultureIgnoreCase))
-                DoExec(PrepExec(args[++i]));
+        for (int i = 0; i < _args.Length; i++)
+            if (_args[i].Equals("-onclose", StringComparison.CurrentCultureIgnoreCase))
+                DoExec(PrepExec(_args[++i]));
     }
 
     public static ProcessStartInfo PrepExec(string command, bool silent = true)
@@ -243,44 +244,44 @@ internal static class Program
     [DllImport("kernel32")]
     private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
 
-    public static void IniWriteValue(string Section, string Key, string Value, string INIPath = null)
+    public static void IniWriteValue(string section, string key, string value, string iniPath = null)
     {
-        WritePrivateProfileString(Section, Key, Value, INIPath ?? GetINIPath());
+        WritePrivateProfileString(section, key, value, iniPath ?? GetIniPath());
     }
 
     [DllImport("kernel32")]
     private static extern int GetPrivateProfileString(string section, string key, string def, [In] [Out] char[] retVal,
         int size, string filePath);
 
-    public static string IniReadValue(string Section, string Key, string Default = "", string INIPath = null)
+    public static string IniReadValue(string section, string key, string @default = "", string iniPath = null)
     {
         char[] chars = new char[8193];
-        int size = GetPrivateProfileString(Section, Key, Default, chars, 8193,
-            INIPath ?? GetINIPath());
+        int size = GetPrivateProfileString(section, key, @default, chars, 8193,
+            iniPath ?? GetIniPath());
         return new string(chars, 0, size);
     }
 
-    public static string[] IniEnumSections(string INIPath = null)
+    public static string[] IniEnumSections(string iniPath = null)
     {
         char[] chars = new char[8193];
-        int size = GetPrivateProfileString(null, null, null, chars, 8193, INIPath ?? GetINIPath());
+        int size = GetPrivateProfileString(null, null, null, chars, 8193, iniPath ?? GetIniPath());
         return new string(chars, 0, size).Split('\0');
     }
 
     public static bool TestArg(string name)
     {
-        for (int i = 0; i < args.Length; i++)
-            if (args[i].Equals(name, StringComparison.CurrentCultureIgnoreCase))
+        for (int i = 0; i < _args.Length; i++)
+            if (_args[i].Equals(name, StringComparison.CurrentCultureIgnoreCase))
                 return true;
         return false;
     }
 
     public static string GetArg(string name)
     {
-        for (int i = 0; i < args.Length; i++)
-            if (args[i].Equals(name, StringComparison.CurrentCultureIgnoreCase))
+        for (int i = 0; i < _args.Length; i++)
+            if (_args[i].Equals(name, StringComparison.CurrentCultureIgnoreCase))
             {
-                string temp = args[i + 1];
+                string temp = _args[i + 1];
                 if (temp.Length > 0 && temp[0] != '-')
                     return temp;
                 return "";
@@ -316,7 +317,7 @@ internal static class Program
             TaskScheduler.TaskScheduler service = new();
             service.Connect();
             ITaskFolder folder = service.GetFolder(@"\"); // root
-            IRegisteredTask task = folder.GetTask(nTaskName);
+            IRegisteredTask task = folder.GetTask(MF_N_TASK_NAME);
             return task != null;
         }
         catch (Exception e)
@@ -327,14 +328,14 @@ internal static class Program
         return false;
     }
 
-    public static bool SkipUacEnable(bool is_enable)
+    public static bool SkipUacEnable(bool isEnable)
     {
         try
         {
             TaskScheduler.TaskScheduler service = new();
             service.Connect();
             ITaskFolder folder = service.GetFolder(@"\"); // root
-            if (is_enable)
+            if (isEnable)
             {
                 string exePath = Assembly.GetExecutingAssembly().Location;
                 ITaskDefinition task = service.NewTask(0);
@@ -348,14 +349,14 @@ internal static class Program
                 task.Settings.ExecutionTimeLimit = "PT0S";
                 IExecAction action = (IExecAction)task.Actions.Create(_TASK_ACTION_TYPE.TASK_ACTION_EXEC);
                 action.Path = exePath;
-                action.WorkingDirectory = appPath;
+                action.WorkingDirectory = AppPath;
                 action.Arguments = "-NoUAC $(Arg0)";
 
-                IRegisteredTask registered_task = folder.RegisterTaskDefinition(nTaskName, task,
+                IRegisteredTask registeredTask = folder.RegisterTaskDefinition(MF_N_TASK_NAME, task,
                     (int)_TASK_CREATION.TASK_CREATE_OR_UPDATE, null, null,
                     _TASK_LOGON_TYPE.TASK_LOGON_INTERACTIVE_TOKEN);
 
-                if (registered_task == null)
+                if (registeredTask == null)
                     return false;
 
                 // Note: if we run as UWP we need to adjust the file permissions for this workaround to work
@@ -365,14 +366,14 @@ internal static class Program
                         return false;
 
                     FileSecurity ac = File.GetAccessControl(exePath);
-                    ac.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(FileOps.SID_Worls),
+                    ac.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(FileOps.SidWorls),
                         FileSystemRights.ReadAndExecute, AccessControlType.Allow));
                     File.SetAccessControl(exePath, ac);
                 }
             }
             else
             {
-                folder.DeleteTask(nTaskName, 0);
+                folder.DeleteTask(MF_N_TASK_NAME, 0);
             }
         }
         catch (Exception err)
@@ -392,20 +393,20 @@ internal static class Program
             TaskScheduler.TaskScheduler service = new();
             service.Connect();
             ITaskFolder folder = service.GetFolder(@"\"); // root
-            IRegisteredTask task = folder.GetTask(nTaskName);
+            IRegisteredTask task = folder.GetTask(MF_N_TASK_NAME);
             silent = false;
             AppLog.Line("Trying to SkipUAC ...");
             IExecAction action = (IExecAction)task.Definition.Actions[1];
             if (action.Path.Equals(Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase))
             {
-                string arguments = "\"" + string.Join("\" \"", args) + "\"";
-                IRunningTask running_Task = task.RunEx(arguments, (int)_TASK_RUN_FLAGS.TASK_RUN_NO_FLAGS, 0, null);
+                string arguments = "\"" + string.Join("\" \"", _args) + "\"";
+                IRunningTask runningTask = task.RunEx(arguments, (int)_TASK_RUN_FLAGS.TASK_RUN_NO_FLAGS, 0, null);
 
                 for (int i = 0; i < 5; i++)
                 {
                     Thread.Sleep(250);
-                    running_Task.Refresh();
-                    _TASK_STATE state = running_Task.State;
+                    runningTask.Refresh();
+                    _TASK_STATE state = runningTask.State;
                     if (state == _TASK_STATE.TASK_STATE_RUNNING || state == _TASK_STATE.TASK_STATE_READY ||
                         state == _TASK_STATE.TASK_STATE_DISABLED)
                     {
@@ -427,8 +428,8 @@ internal static class Program
 
     private static void ShowHelp()
     {
-        string Message = "Available command line options\r\n";
-        string[] Help =
+        string message = "Available command line options\r\n";
+        string[] help =
         {
             "-tray\t\tStart in Tray",
             "-onclose [cmd]\tExecute commands when closing",
@@ -436,15 +437,15 @@ internal static class Program
             "-console\t\tshow console (for debugging)",
             "-help\t\tShow this help message"
         };
-        if (!mConsole)
+        if (!_mConsole)
         {
-            MessageBox.Show(Message + string.Join("\r\n", Help));
+            MessageBox.Show(message + string.Join("\r\n", help));
         }
         else
         {
-            Console.WriteLine(Message);
-            for (int j = 0; j < Help.Length; j++)
-                Console.WriteLine(" " + Help[j]);
+            Console.WriteLine(message);
+            for (int j = 0; j < help.Length; j++)
+                Console.WriteLine(" " + help[j]);
         }
     }
 }

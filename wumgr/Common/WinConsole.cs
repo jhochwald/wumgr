@@ -7,11 +7,13 @@ using Microsoft.Win32.SafeHandles;
 
 #endregion
 
+namespace wumgr.Common;
+
 internal static class WinConsole
 {
     public static bool Initialize(bool alwaysCreateNewConsole = true)
     {
-        if (AttachConsole(ATTACH_PARRENT) != 0)
+        if (AttachConsole(MF_ATTACH_PARRENT) != 0)
             return true;
         if (!alwaysCreateNewConsole)
             return false;
@@ -27,7 +29,7 @@ internal static class WinConsole
 
     private static void InitializeOutStream()
     {
-        FileStream fs = CreateFileStream("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, FileAccess.Write);
+        FileStream fs = CreateFileStream("CONOUT$", MF_GENERIC_WRITE, MF_FILE_SHARE_WRITE, FileAccess.Write);
         if (fs != null)
         {
             StreamWriter writer = new(fs) { AutoFlush = true };
@@ -38,7 +40,7 @@ internal static class WinConsole
 
     private static void InitializeInStream()
     {
-        FileStream fs = CreateFileStream("CONIN$", GENERIC_READ, FILE_SHARE_READ, FileAccess.Read);
+        FileStream fs = CreateFileStream("CONIN$", MF_GENERIC_READ, MF_FILE_SHARE_READ, FileAccess.Read);
         if (fs != null) Console.SetIn(new StreamReader(fs));
     }
 
@@ -46,7 +48,7 @@ internal static class WinConsole
         FileAccess dotNetFileAccess)
     {
         SafeFileHandle file = new(
-            CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+            CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, MF_OPEN_EXISTING, MF_FILE_ATTRIBUTE_NORMAL,
                 IntPtr.Zero), true);
         if (!file.IsInvalid)
         {
@@ -88,15 +90,14 @@ internal static class WinConsole
         IntPtr hTemplateFile
     );
 
-    private const uint GENERIC_WRITE = 0x40000000;
-    private const uint GENERIC_READ = 0x80000000;
-    private const uint FILE_SHARE_READ = 0x00000001;
-    private const uint FILE_SHARE_WRITE = 0x00000002;
-    private const uint OPEN_EXISTING = 0x00000003;
-    private const uint FILE_ATTRIBUTE_NORMAL = 0x80;
-    private const uint ERROR_ACCESS_DENIED = 5;
-
-    private const uint ATTACH_PARRENT = 0xFFFFFFFF;
+    private const uint MF_GENERIC_WRITE = 0x40000000;
+    private const uint MF_GENERIC_READ = 0x80000000;
+    private const uint MF_FILE_SHARE_READ = 0x00000001;
+    private const uint MF_FILE_SHARE_WRITE = 0x00000002;
+    private const uint MF_OPEN_EXISTING = 0x00000003;
+    private const uint MF_FILE_ATTRIBUTE_NORMAL = 0x80;
+    private const uint MF_ERROR_ACCESS_DENIED = 5;
+    private const uint MF_ATTACH_PARRENT = 0xFFFFFFFF;
 
     #endregion
 }

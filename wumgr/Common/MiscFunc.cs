@@ -9,17 +9,26 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
+namespace wumgr.Common;
+
+
+
 #endregion
 
-internal struct LASTINPUTINFO
+internal struct Lastinputinfo
 {
-    public uint cbSize;
-    public uint dwTime;
+    public uint CbSize;
+    public uint DwTime;
+
+    public Lastinputinfo(uint dwTime)
+    {
+        DwTime = dwTime;
+    }
 }
 
 internal class MiscFunc
 {
-    private const long APPMODEL_ERROR_NO_PACKAGE = 15700L;
+    private const long MF_APPMODEL_ERROR_NO_PACKAGE = 15700L;
 
     public static bool IsWindows7OrLower
     {
@@ -33,20 +42,20 @@ internal class MiscFunc
     }
 
     [DllImport("User32.dll")]
-    private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+    private static extern bool GetLastInputInfo(ref Lastinputinfo plii);
 
     [DllImport("Kernel32.dll")]
     private static extern uint GetLastError();
 
     public static uint GetIdleTime() // in seconds
     {
-        LASTINPUTINFO lastInPut = new();
-        lastInPut.cbSize = (uint)Marshal.SizeOf(lastInPut);
+        Lastinputinfo lastInPut = new();
+        lastInPut.CbSize = (uint)Marshal.SizeOf(lastInPut);
         if (!GetLastInputInfo(ref lastInPut)) throw new Exception(GetLastError().ToString());
-        return ((uint)Environment.TickCount - lastInPut.dwTime) / 1000;
+        return ((uint)Environment.TickCount - lastInPut.DwTime) / 1000;
     }
 
-    public static int parseInt(string str, int def = 0)
+    public static int ParseInt(string str, int def = 0)
     {
         try
         {
@@ -58,16 +67,16 @@ internal class MiscFunc
         }
     }
 
-    public static Color? parseColor(string input)
+    public static Color? ParseColor(string input)
     {
         ColorConverter c = new();
         if (Regex.IsMatch(input, "^(#[0-9A-Fa-f]{3})$|^(#[0-9A-Fa-f]{6})$"))
-            return (Color)c.ConvertFromString(input);
+            return (Color)c.ConvertFromString(input)!;
 
         TypeConverter.StandardValuesCollection svc = (TypeConverter.StandardValuesCollection)c.GetStandardValues();
-        foreach (Color o in svc)
+        foreach (Color o in svc!)
             if (o.Name.Equals(input, StringComparison.OrdinalIgnoreCase))
-                return (Color)c.ConvertFromString(input);
+                return (Color)c.ConvertFromString(input)!;
         return null;
     }
 
@@ -107,6 +116,6 @@ internal class MiscFunc
         sb = new StringBuilder(length);
         result = GetCurrentPackageFullName(ref length, sb);
 
-        return result != APPMODEL_ERROR_NO_PACKAGE;
+        return result != MF_APPMODEL_ERROR_NO_PACKAGE;
     }
 }

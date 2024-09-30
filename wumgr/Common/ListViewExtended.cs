@@ -9,13 +9,13 @@ using System.Windows.Forms;
 
 #endregion
 
-namespace wumgr;
+namespace wumgr.Common;
 
 public class ListViewExtended : ListView
 {
-    private const int LVM_FIRST = 0x1000; // ListView messages
-    private const int LVM_SETGROUPINFO = LVM_FIRST + 147; // ListView messages Setinfo on Group
-    private const int WM_LBUTTONUP = 0x0202; // Windows message left button
+    private const int MF_LVM_FIRST = 0x1000; // ListView messages
+    private const int MF_LVM_SETGROUPINFO = MF_LVM_FIRST + 147; // ListView messages Setinfo on Group
+    private const int MF_WM_LBUTTONUP = 0x0202; // Windows message left button
 
     /// <summary>
     ///     Sends the specified message to a window or windows. The SendMessage function calls the window procedure for the
@@ -31,7 +31,7 @@ public class ListViewExtended : ListView
     ///     thread of a process can send messages only to message queues of threads in processes of lesser or equal integrity
     ///     level.
     /// </param>
-    /// <param name="uMsg">[in] Specifies the message to be sent.</param>
+    /// <param name="msg"></param>
     /// <param name="wParam">[in] Specifies additional message-specific information.</param>
     /// <param name="lParam">[in] Type of LVGROUP, Specifies additional message-specific information.</param>
     /// <returns>
@@ -54,15 +54,15 @@ public class ListViewExtended : ListView
     [DllImport("User32.dll")]
     [Description(
         "Sends the specified message to a window or windows. The SendMessage function calls the window procedure for the specified window and does not return until the window procedure has processed the message. To send a message and return immediately, use the SendMessageCallback or SendNotifyMessage function. To post a message to a thread's message queue and return immediately, use the PostMessage or PostThreadMessage function.")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
-    private static int? GetGroupID(ListViewGroup lstvwgrp)
+    private static int? GetGroupId(ListViewGroup lstvwgrp)
     {
         int? rtnval = null;
-        Type GrpTp = lstvwgrp.GetType();
-        if (GrpTp != null)
+        Type grpTp = lstvwgrp.GetType();
+        if (grpTp != null)
         {
-            PropertyInfo pi = GrpTp.GetProperty("ID", BindingFlags.NonPublic | BindingFlags.Instance);
+            PropertyInfo pi = grpTp.GetProperty("ID", BindingFlags.NonPublic | BindingFlags.Instance);
             if (pi != null)
             {
                 object tmprtnval = pi.GetValue(lstvwgrp, null);
@@ -85,9 +85,9 @@ public class ListViewExtended : ListView
         }
         else
         {
-            int? GrpId = GetGroupID(lstvwgrp);
+            int? grpId = GetGroupId(lstvwgrp);
             int gIndex = lstvwgrp.ListView.Groups.IndexOf(lstvwgrp);
-            LVGROUP group = new();
+            Lvgroup group = new();
             group.CbSize = Marshal.SizeOf(group);
             group.State = state;
             group.Mask = ListViewGroupMask.State;
@@ -96,19 +96,19 @@ public class ListViewExtended : ListView
             try
             {
                 ip = Marshal.AllocHGlobal(group.CbSize);
-                if (GrpId != null)
+                if (grpId != null)
                 {
-                    group.IGroupId = GrpId.Value;
+                    group.IGroupId = grpId.Value;
                     Marshal.StructureToPtr(group, ip, false);
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)GrpId.Value, ip);
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)GrpId.Value, ip);
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)grpId.Value, ip);
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)grpId.Value, ip);
                 }
                 else
                 {
                     group.IGroupId = gIndex;
                     Marshal.StructureToPtr(group, ip, false);
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
                 }
 
                 lstvwgrp.ListView.Refresh();
@@ -136,9 +136,9 @@ public class ListViewExtended : ListView
         }
         else
         {
-            int? GrpId = GetGroupID(lstvwgrp);
+            int? grpId = GetGroupId(lstvwgrp);
             int gIndex = lstvwgrp.ListView.Groups.IndexOf(lstvwgrp);
-            LVGROUP group = new();
+            Lvgroup group = new();
             group.CbSize = Marshal.SizeOf(group);
             group.PszFooter = footer;
             group.Mask = ListViewGroupMask.Footer;
@@ -147,15 +147,15 @@ public class ListViewExtended : ListView
             try
             {
                 ip = Marshal.AllocHGlobal(group.CbSize);
-                if (GrpId != null)
+                if (grpId != null)
                 {
-                    group.IGroupId = GrpId.Value;
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)GrpId.Value, ip);
+                    group.IGroupId = grpId.Value;
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)grpId.Value, ip);
                 }
                 else
                 {
                     group.IGroupId = gIndex;
-                    SendMessage(lstvwgrp.ListView.Handle, LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
+                    SendMessage(lstvwgrp.ListView.Handle, MF_LVM_SETGROUPINFO, (IntPtr)gIndex, ip);
                 }
             }
             catch (Exception ex)
@@ -182,7 +182,7 @@ public class ListViewExtended : ListView
 
     protected override void WndProc(ref Message m)
     {
-        if (m.Msg == WM_LBUTTONUP)
+        if (m.Msg == MF_WM_LBUTTONUP)
             base.DefWndProc(ref m);
         base.WndProc(ref m);
     }
@@ -232,7 +232,7 @@ public class ListViewExtended : ListView
 /// </remarks>
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
 [Description("LVGROUP StructureUsed to set and retrieve groups.")]
-public struct LVGROUP
+public struct Lvgroup
 {
     /// <summary>
     ///     Size of this structure, in bytes.

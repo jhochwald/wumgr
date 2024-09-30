@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 #endregion
 
+namespace wumgr.Common;
+
 public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 {
     public void Add(TKey key, TValue value)
@@ -46,20 +48,20 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 
     public int GetCount()
     {
-        int Count = 0;
+        int count = 0;
         foreach (KeyValuePair<TKey, List<TValue>> pair in this)
-            Count += pair.Value.Count;
-        return Count;
+            count += pair.Value.Count;
+        return count;
     }
 
     public TValue GetAt(int index)
     {
-        int Count = 0;
+        int count = 0;
         foreach (KeyValuePair<TKey, List<TValue>> pair in this)
         {
-            if (Count + pair.Value.Count > index)
-                return pair.Value[index - Count];
-            Count += pair.Value.Count;
+            if (count + pair.Value.Count > index)
+                return pair.Value[index - count];
+            count += pair.Value.Count;
         }
 
         throw new IndexOutOfRangeException();
@@ -67,12 +69,12 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 
     public TKey GetKey(int index)
     {
-        int Count = 0;
+        int count = 0;
         foreach (KeyValuePair<TKey, List<TValue>> pair in this)
         {
-            if (Count + pair.Value.Count > index)
+            if (count + pair.Value.Count > index)
                 return pair.Key;
-            Count += pair.Value.Count;
+            count += pair.Value.Count;
         }
 
         throw new IndexOutOfRangeException();

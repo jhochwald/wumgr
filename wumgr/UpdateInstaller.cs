@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Windows.Threading;
+using wumgr.Common;
 
 #endregion
 
@@ -15,45 +16,45 @@ namespace wumgr;
 
 internal class UpdateInstaller
 {
-    private readonly Dispatcher mDispatcher;
-    private bool Canceled;
-    private bool DoInstall = true;
-    private int ErrorCount;
-    private MultiValueDictionary<string, string> mAllFiles;
-    private int mCurrentTask;
-    private Thread mThread;
-    private List<MsUpdate> mUpdates;
-    private bool RebootRequired;
+    private readonly Dispatcher _mDispatcher;
+    private bool _canceled;
+    private bool _doInstall = true;
+    private int _errorCount;
+    private MultiValueDictionary<string, string> _mAllFiles;
+    private int _mCurrentTask;
+    private Thread _mThread;
+    private List<MsUpdate> _mUpdates;
+    private bool _rebootRequired;
 
     public UpdateInstaller()
     {
-        mDispatcher = Dispatcher.CurrentDispatcher;
+        _mDispatcher = Dispatcher.CurrentDispatcher;
     }
 
     private void Reset()
     {
-        ErrorCount = 0;
-        RebootRequired = false;
-        Canceled = false;
-        mCurrentTask = 0;
+        _errorCount = 0;
+        _rebootRequired = false;
+        _canceled = false;
+        _mCurrentTask = 0;
     }
 
-    public bool Install(List<MsUpdate> Updates, MultiValueDictionary<string, string> AllFiles)
+    public bool Install(List<MsUpdate> updates, MultiValueDictionary<string, string> allFiles)
     {
         Reset();
-        mUpdates = Updates;
-        mAllFiles = AllFiles;
-        DoInstall = true;
+        _mUpdates = updates;
+        _mAllFiles = allFiles;
+        _doInstall = true;
 
         NextUpdate();
         return true;
     }
 
-    public bool UnInstall(List<MsUpdate> Updates)
+    public bool UnInstall(List<MsUpdate> updates)
     {
         Reset();
-        mUpdates = Updates;
-        DoInstall = false;
+        _mUpdates = updates;
+        _doInstall = false;
 
         NextUpdate();
         return true;
@@ -61,90 +62,90 @@ internal class UpdateInstaller
 
     public bool IsBusy()
     {
-        return mUpdates != null;
+        return _mUpdates != null;
     }
 
     public void CancelOperations()
     {
-        Canceled = true;
+        _canceled = true;
     }
 
     private void NextUpdate()
     {
-        if (!Canceled && mUpdates.Count > mCurrentTask)
+        if (!_canceled && _mUpdates.Count > _mCurrentTask)
         {
-            int Percent = 0; // Note: there does not seam to be an easy way to get this value
+            int percent = 0; // Note: there does not seam to be an easy way to get this value
             Progress?.Invoke(this,
-                new WuAgent.ProgressArgs(mUpdates.Count,
-                    mUpdates.Count == 0 ? 0 : (100 * mCurrentTask + Percent) / mUpdates.Count, mCurrentTask + 1,
-                    Percent, mUpdates[mCurrentTask].Title));
+                new WuAgent.ProgressArgs(_mUpdates.Count,
+                    _mUpdates.Count == 0 ? 0 : (100 * _mCurrentTask + percent) / _mUpdates.Count, _mCurrentTask + 1,
+                    percent, _mUpdates[_mCurrentTask].Title));
 
-            if (DoInstall)
+            if (_doInstall)
             {
-                List<string> Files = mAllFiles.GetValues(mUpdates[mCurrentTask].KB);
+                List<string> files = _mAllFiles.GetValues(_mUpdates[_mCurrentTask].Kb);
 
-                mThread = new Thread(RunInstall);
-                mThread.Start(Files);
+                _mThread = new Thread(RunInstall);
+                _mThread.Start(files);
             }
             else
             {
-                string KB = mUpdates[mCurrentTask].KB;
+                string kb = _mUpdates[_mCurrentTask].Kb;
 
-                mThread = new Thread(RunUnInstall);
-                mThread.Start(KB);
+                _mThread = new Thread(RunUnInstall);
+                _mThread.Start(kb);
             }
 
             return;
         }
 
-        FinishedEventArgs args = new(ErrorCount, RebootRequired);
+        FinishedEventArgs args = new(_errorCount, _rebootRequired);
         //args.AllFiles = mAllFiles;
-        args.Updates = mUpdates;
-        mAllFiles = null;
-        mUpdates = null;
+        args.Updates = _mUpdates;
+        _mAllFiles = null;
+        _mUpdates = null;
         Finished?.Invoke(this, args);
     }
 
     private void OnFinished(bool success, bool reboot)
     {
         if (!success)
-            ErrorCount++;
+            _errorCount++;
         if (reboot)
-            RebootRequired = true;
+            _rebootRequired = true;
 
-        mThread.Join();
-        mThread = null;
+        _mThread.Join();
+        _mThread = null;
 
-        mCurrentTask++;
+        _mCurrentTask++;
         NextUpdate();
     }
 
     public void RunInstall(object parameters)
     {
-        List<string> Files = (List<string>)parameters;
+        List<string> files = (List<string>)parameters;
 
         bool ok = true;
         bool reboot = false;
 
-        foreach (string CurFile in Files)
+        foreach (string curFile in files)
         {
-            if (Canceled)
+            if (_canceled)
                 break;
 
-            string File = CurFile;
+            string file = curFile;
 
-            AppLog.Line("Installing: {0}", File);
+            AppLog.Line("Installing: {0}", file);
 
             try
             {
-                string ext = Path.GetExtension(File);
+                string ext = Path.GetExtension(file);
 
                 if (ext.Equals(".zip", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    string path = Path.GetDirectoryName(File) + @"\files"; // + Path.GetFileNameWithoutExtension(File);
+                    string path = Path.GetDirectoryName(file) + @"\files"; // + Path.GetFileNameWithoutExtension(File);
 
                     if (!Directory.Exists(path)) // is it already unpacked?
-                        ZipFile.ExtractToDirectory(File, path);
+                        ZipFile.ExtractToDirectory(file, path);
 
                     string supportedExtensions = "*.msu,*.msi,*.cab,*.exe";
                     IEnumerable<string> foundFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
@@ -152,23 +153,23 @@ internal class UpdateInstaller
                     if (foundFiles.Count() == 0)
                         throw new FileNotFoundException("Expected file not found in zip");
 
-                    File = foundFiles.First();
-                    ext = Path.GetExtension(File);
+                    file = foundFiles.First();
+                    ext = Path.GetExtension(file);
                 }
 
-                if (Canceled)
+                if (_canceled)
                     break;
 
                 int exitCode = 0;
 
                 if (ext.Equals(".exe", StringComparison.CurrentCultureIgnoreCase))
-                    exitCode = InstallExe(File);
+                    exitCode = InstallExe(file);
                 else if (ext.Equals(".msi", StringComparison.CurrentCultureIgnoreCase))
-                    exitCode = InstallMsi(File);
+                    exitCode = InstallMsi(file);
                 else if (ext.Equals(".msu", StringComparison.CurrentCultureIgnoreCase))
-                    exitCode = InstallMsu(File);
+                    exitCode = InstallMsu(file);
                 else if (ext.Equals(".cab", StringComparison.CurrentCultureIgnoreCase))
-                    exitCode = InstallCab(File);
+                    exitCode = InstallCab(file);
                 else
                     throw new FileFormatException("Unknown Update format: " + ext);
 
@@ -178,7 +179,7 @@ internal class UpdateInstaller
                 }
                 else if (exitCode == 1641)
                 {
-                    AppLog.Line("Error, reboot got initiated: {0}", File);
+                    AppLog.Line("Error, reboot got initiated: {0}", file);
                     reboot = true; // reboot in initiated, WTF !!!!
                     ok = false;
                 }
@@ -190,11 +191,11 @@ internal class UpdateInstaller
             catch (Exception e)
             {
                 ok = false;
-                Console.WriteLine("Error installing update: {0}", e.Message);
+                Console.WriteLine(@"Error installing update: {0}", e.Message);
             }
         }
 
-        mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
+        _mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
     }
 
     private int InstallExe(string fileName)
@@ -260,7 +261,7 @@ internal class UpdateInstaller
         }
         catch (Exception e)
         {
-            Console.WriteLine("Dism error: {0}", e.Message);
+            Console.WriteLine(@"Dism error: {0}", e.Message);
         }
 
         return false;
@@ -268,7 +269,7 @@ internal class UpdateInstaller
 
     private int InstallCab(string fileName)
     {
-        if (!CheckCab(fileName) || Canceled)
+        if (!CheckCab(fileName) || _canceled)
             return 0; // update not aplicable or user canceled
 
         ProcessStartInfo startInfo = new();
@@ -299,11 +300,11 @@ internal class UpdateInstaller
         return proc.ExitCode;
     }
 
-    public void RunUnInstall(object parameters)
+    private void RunUnInstall(object parameters)
     {
-        string KB = (string)parameters;
+        string kb = (string)parameters;
 
-        AppLog.Line("Uninstalling: {0}", KB);
+        AppLog.Line("Uninstalling: {0}", kb);
 
         bool ok = true;
         bool reboot = false;
@@ -312,7 +313,7 @@ internal class UpdateInstaller
         {
             ProcessStartInfo startInfo = new();
             startInfo.FileName = @"%SystemRoot%\System32\wusa.exe";
-            startInfo.Arguments = "/uninstall /kb:" + KB.Substring(2) + " /norestart"; // /quiet 
+            startInfo.Arguments = "/uninstall /kb:" + kb.Substring(2) + " /norestart"; // /quiet 
 
             int exitCode = ExecTask(startInfo);
 
@@ -329,10 +330,10 @@ internal class UpdateInstaller
         catch (Exception e)
         {
             ok = false;
-            Console.WriteLine("Error removing update: {0}", e.Message);
+            Console.WriteLine(@"Error removing update: {0}", e.Message);
         }
 
-        mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
+        _mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
     }
 
     public event EventHandler<FinishedEventArgs> Finished;
@@ -341,17 +342,17 @@ internal class UpdateInstaller
 
     public class FinishedEventArgs : EventArgs
     {
-        public int ErrorCount;
+        private int _errorCount;
         public bool Reboot;
         public List<MsUpdate> Updates;
 
-        public FinishedEventArgs(int ErrorCount, bool Reboot)
+        public FinishedEventArgs(int errorCount, bool reboot)
         {
-            this.ErrorCount = ErrorCount;
-            this.Reboot = Reboot;
+            this._errorCount = errorCount;
+            this.Reboot = reboot;
         }
 
         //public MultiValueDictionary<string, string> AllFiles;
-        public bool Success => ErrorCount == 0;
+        public bool Success => _errorCount == 0;
     }
 }

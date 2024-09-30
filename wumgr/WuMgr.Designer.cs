@@ -1,4 +1,6 @@
-﻿namespace wumgr
+﻿using wumgr.Common;
+
+namespace wumgr
 {
     partial class WuMgr
     {
@@ -39,7 +41,7 @@
             this.chkGrupe = new System.Windows.Forms.CheckBox();
             this.chkAll = new System.Windows.Forms.CheckBox();
             this.lblPatreon = new System.Windows.Forms.LinkLabel();
-            this.updateView = new wumgr.ListViewExtended();
+            this.updateView = new ListViewExtended();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));

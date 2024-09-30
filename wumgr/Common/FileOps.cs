@@ -7,10 +7,12 @@ using System.Security.Principal;
 
 #endregion
 
+namespace wumgr.Common;
+
 internal class FileOps
 {
     public static string SID_null = "S-1-0-0"; //	Null SID
-    public static string SID_Worls = "S-1-1-0"; //	World
+    public static string SidWorls = "S-1-1-0"; //	World
     public static string SID_Local = "S-1-2-0"; //	Local
     public static string SID_Console = "S-1-2-1"; //	Console Logon
     public static string SID_OwnerID = "S-1-3-0"; //	Creator Owner ID
@@ -43,13 +45,13 @@ internal class FileOps
     public static string SID_RemoteLogin = "S-1-5-14"; //	Remote Interactive Logon
     public static string SID_ThisORg = "S-1-5-15"; //	This Organization
     public static string SID_IIS = "S-1-5-17"; //	IIS_USRS
-    public static string SID_System = "S-1-5-18"; //	System(or LocalSystem)
+    public static string SidSystem = "S-1-5-18"; //	System(or LocalSystem)
 
     public static string SID_NTAuthL = "S-1-5-19"; //	NT Authority(LocalService)
     public static string SID_NetServices = "S-1-5-20"; //	Network Service
 
-    public static string SID_Admins = "S-1-5-32-544"; //	Administrators
-    public static string SID_Users = "S-1-5-32-545"; //	Users
+    private static string _sidAdmins = "S-1-5-32-544"; //	Administrators
+    private static string _sidUsers = "S-1-5-32-545"; //	Users
     public static string SID_Guests = "S-1-5-32-546"; //	Guests
     public static string SID_PowerUsers = "S-1-5-32-547"; //	Power Users
     public static string SID_AccOps = "S-1-5-32-548"; //	Account Operators
@@ -85,13 +87,13 @@ internal class FileOps
         return (long)size + " B";
     }
 
-    public static bool MoveFile(string from, string to, bool Overwrite = false)
+    public static bool MoveFile(string from, string to, bool overwrite = false)
     {
         try
         {
             if (File.Exists(to))
             {
-                if (!Overwrite)
+                if (!overwrite)
                     return false;
                 File.Delete(to);
             }
@@ -103,7 +105,7 @@ internal class FileOps
         }
         catch (Exception e)
         {
-            Console.WriteLine("The process failed: {0}", e);
+            Console.WriteLine(@"The process failed: {0}", e);
             return false;
         }
 
@@ -143,7 +145,7 @@ internal class FileOps
         {
             if (rule.AccessControlType != AccessControlType.Allow)
                 continue;
-            if (rule.IdentityReference.Value.Equals(SID_Admins) || rule.IdentityReference.Value.Equals(SID_System))
+            if (rule.IdentityReference.Value.Equals(_sidAdmins) || rule.IdentityReference.Value.Equals(SidSystem))
                 continue;
             if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.Delete)) != 0)
                 return 0;
@@ -158,8 +160,8 @@ internal class FileOps
         FileInfo fi = new(filePath);
         if (!fi.Exists)
         {
-            FileStream f_out = fi.OpenWrite();
-            f_out.Close();
+            FileStream fOut = fi.OpenWrite();
+            fOut.Close();
         }
 
         //get security access
@@ -175,11 +177,11 @@ internal class FileOps
         foreach (FileSystemAccessRule rule in rules)
             fs.RemoveAccessRule(rule);
 
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Admins), FileSystemRights.FullControl,
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(_sidAdmins), FileSystemRights.FullControl,
             AccessControlType.Allow));
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_System), FileSystemRights.FullControl,
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SidSystem), FileSystemRights.FullControl,
             AccessControlType.Allow));
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Users), FileSystemRights.Read,
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(_sidUsers), FileSystemRights.Read,
             AccessControlType.Allow));
 
         //add current user with full control.
@@ -198,8 +200,8 @@ internal class FileOps
         FileInfo fi = new(filePath);
         try
         {
-            FileStream f_out = fi.OpenWrite();
-            f_out.Close();
+            FileStream fOut = fi.OpenWrite();
+            fOut.Close();
             return true;
         }
         catch
@@ -219,7 +221,7 @@ internal class FileOps
 
 
             FileSecurity ac = File.GetAccessControl(path);
-            ac.SetOwner(new SecurityIdentifier(SID_Admins));
+            ac.SetOwner(new SecurityIdentifier(_sidAdmins));
             File.SetAccessControl(path, ac);
         }
         catch (PrivilegeNotHeldException err)

@@ -6,17 +6,19 @@ using System.Windows.Threading;
 
 #endregion
 
+namespace wumgr.Common;
+
 internal class AppLog
 {
-    private static AppLog mInstance;
-    private readonly Dispatcher mDispatcher;
-    private readonly List<string> mLogList = new();
+    private static AppLog _mInstance;
+    private readonly Dispatcher _mDispatcher;
+    private readonly List<string> _mLogList = new();
 
     public AppLog()
     {
-        mInstance = this;
+        _mInstance = this;
 
-        mDispatcher = Dispatcher.CurrentDispatcher;
+        _mDispatcher = Dispatcher.CurrentDispatcher;
 
         Logger += LineLogger;
     }
@@ -28,17 +30,17 @@ internal class AppLog
 
     public static void Line(string line)
     {
-        if (mInstance != null)
-            mInstance.logLine(line);
+        if (_mInstance != null)
+            _mInstance.LogLine(line);
     }
 
-    public void logLine(string line)
+    public void LogLine(string line)
     {
-        mDispatcher.BeginInvoke(new Action(() =>
+        _mDispatcher.BeginInvoke(new Action(() =>
         {
-            mLogList.Add(line);
-            while (mLogList.Count > 100)
-                mLogList.RemoveAt(0);
+            _mLogList.Add(line);
+            while (_mLogList.Count > 100)
+                _mLogList.RemoveAt(0);
 
             Logger?.Invoke(this, new LogEventArgs(line));
         }));
@@ -46,19 +48,19 @@ internal class AppLog
 
     public static List<string> GetLog()
     {
-        return mInstance.mLogList;
+        return _mInstance._mLogList;
     }
 
     public static event EventHandler<LogEventArgs> Logger;
 
     private static void LineLogger(object sender, LogEventArgs args)
     {
-        Console.WriteLine("LOG: " + args.line);
+        Console.WriteLine(@"LOG: " + args.line);
     }
 
     public static AppLog GetInstance()
     {
-        return mInstance;
+        return _mInstance;
     }
 
     public class LogEventArgs : EventArgs

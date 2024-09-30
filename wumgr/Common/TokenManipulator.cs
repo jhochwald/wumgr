@@ -5,12 +5,14 @@ using System.Runtime.InteropServices;
 
 #endregion
 
-public class TokenManipulator
+namespace wumgr.Common;
+
+public abstract class TokenManipulator
 {
-    internal const int SE_PRIVILEGE_DISABLED = 0x00000000;
-    internal const int SE_PRIVILEGE_ENABLED = 0x00000002;
-    internal const int TOKEN_QUERY = 0x00000008;
-    internal const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
+    private const int MF_SE_PRIVILEGE_DISABLED = 0x00000000;
+    private const int MF_SE_PRIVILEGE_ENABLED = 0x00000002;
+    private const int MF_TOKEN_QUERY = 0x00000008;
+    private const int MF_TOKEN_ADJUST_PRIVILEGES = 0x00000020;
 
     public const string SE_ASSIGNPRIMARYTOKEN_NAME = "SeAssignPrimaryTokenPrivilege";
     public const string SE_AUDIT_NAME = "SeAuditPrivilege";
@@ -69,46 +71,32 @@ public class TokenManipulator
 
     public static bool AddPrivilege(string privilege)
     {
-        try
-        {
-            bool retVal;
-            TokPriv1Luid tp;
-            IntPtr hproc = GetCurrentProcess();
-            IntPtr htok = IntPtr.Zero;
-            retVal = OpenProcessToken(hproc, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ref htok);
-            tp.Count = 1;
-            tp.Luid = 0;
-            tp.Attr = SE_PRIVILEGE_ENABLED;
-            retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
-            retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
-            return retVal;
-        }
-        catch (Exception ex)
-        {
-            throw ex;
-        }
+        bool retVal;
+        TokPriv1Luid tp;
+        IntPtr hproc = GetCurrentProcess();
+        IntPtr htok = IntPtr.Zero;
+        retVal = OpenProcessToken(hproc, MF_TOKEN_ADJUST_PRIVILEGES | MF_TOKEN_QUERY, ref htok);
+        tp.Count = 1;
+        tp.Luid = 0;
+        tp.Attr = MF_SE_PRIVILEGE_ENABLED;
+        retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
+        retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+        return retVal;
     }
 
     public static bool RemovePrivilege(string privilege)
     {
-        try
-        {
-            bool retVal;
-            TokPriv1Luid tp;
-            IntPtr hproc = GetCurrentProcess();
-            IntPtr htok = IntPtr.Zero;
-            retVal = OpenProcessToken(hproc, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ref htok);
-            tp.Count = 1;
-            tp.Luid = 0;
-            tp.Attr = SE_PRIVILEGE_DISABLED;
-            retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
-            retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
-            return retVal;
-        }
-        catch (Exception ex)
-        {
-            throw ex;
-        }
+        bool retVal;
+        TokPriv1Luid tp;
+        IntPtr hproc = GetCurrentProcess();
+        IntPtr htok = IntPtr.Zero;
+        retVal = OpenProcessToken(hproc, MF_TOKEN_ADJUST_PRIVILEGES | MF_TOKEN_QUERY, ref htok);
+        tp.Count = 1;
+        tp.Luid = 0;
+        tp.Attr = MF_SE_PRIVILEGE_DISABLED;
+        retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
+        retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+        return retVal;
     }
 
 

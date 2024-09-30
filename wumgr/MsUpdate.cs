@@ -33,21 +33,21 @@ public class MsUpdate
         History
     }
 
-    public string ApplicationID = "";
+    public string ApplicationId = "";
     public int Attributes;
     public string Category = "";
     public DateTime Date = DateTime.MinValue;
     public string Description = "";
     public StringCollection Downloads = new();
-    private IUpdate Entry;
+    private IUpdate _entry;
     public int HResult;
-    public string KB = "";
+    public string Kb = "";
     public int ResultCode;
     public decimal Size;
     public UpdateState State = UpdateState.None;
     public string SupportUrl = "";
     public string Title = "";
-    public string UUID = "";
+    public string Uuid = "";
 
     public MsUpdate()
     {
@@ -55,18 +55,18 @@ public class MsUpdate
 
     public MsUpdate(IUpdate update, UpdateState state)
     {
-        Entry = update;
+        _entry = update;
 
         try
         {
-            UUID = update.Identity.UpdateID;
+            Uuid = update.Identity.UpdateID;
 
             Title = update.Title;
             Category = GetCategory(update.Categories);
             Description = update.Description;
             Size = update.MaxDownloadSize;
             Date = update.LastDeploymentChangeTime;
-            KB = GetKB(update);
+            Kb = GetKb(update);
             SupportUrl = update.SupportUrl;
 
             AddUpdates();
@@ -94,8 +94,9 @@ public class MsUpdate
                     break;
             }
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e.Message);
         }
     }
 
@@ -103,14 +104,14 @@ public class MsUpdate
     {
         try
         {
-            UUID = update.UpdateIdentity.UpdateID;
+            Uuid = update.UpdateIdentity.UpdateID;
 
             Title = update.Title;
             Category = GetCategory(update.Categories);
             Description = update.Description;
             Date = update.Date;
             SupportUrl = update.SupportUrl;
-            ApplicationID = update.ClientApplicationID;
+            ApplicationId = update.ClientApplicationID;
 
             State = UpdateState.History;
 
@@ -125,9 +126,9 @@ public class MsUpdate
 
     private void AddUpdates()
     {
-        AddUpdates(Entry.DownloadContents);
+        AddUpdates(_entry.DownloadContents);
         if (Downloads.Count == 0)
-            foreach (IUpdate5 bundle in Entry.BundledUpdates)
+            foreach (IUpdate5 bundle in _entry.BundledUpdates)
                 AddUpdates(bundle.DownloadContents);
     }
 
@@ -143,7 +144,7 @@ public class MsUpdate
         }
     }
 
-    private static string GetKB(IUpdate update)
+    private static string GetKb(IUpdate update)
     {
         return update.KBArticleIDs.Count > 0 ? "KB" + update.KBArticleIDs[0] : "KBUnknown";
     }
@@ -153,18 +154,23 @@ public class MsUpdate
         string classification = "";
         string product = "";
         foreach (ICategory cat in cats)
-            if (cat.Type.Equals("UpdateClassification"))
-                classification = cat.Name;
-            else if (cat.Type.Equals("Product"))
-                product = cat.Name;
-            else
-                continue;
+            switch (cat.Type)
+            {
+                case "UpdateClassification":
+                    classification = cat.Name;
+                    break;
+                case "Product":
+                    product = cat.Name;
+                    break;
+                default:
+                    continue;
+            }
         return product.Length == 0 ? classification : product + "; " + classification;
     }
 
     public void Invalidate()
     {
-        Entry = null;
+        _entry = null;
     }
 
     public IUpdate GetUpdate()
@@ -175,6 +181,6 @@ public class MsUpdate
             if (agen.IsActive())
                 Entry = agen.FindUpdate(UUID);
         }*/
-        return Entry;
+        return _entry;
     }
 }

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using WUApiLib;
+using wumgr.Common;
 using wumgr.Properties;
 
 #endregion
@@ -40,7 +41,7 @@ public partial class WuMgr : Form
     private static Timer mTimer;
     private readonly WuAgent agent;
     private readonly int IdleDelay;
-    private readonly GPO.Respect mGPORespect = GPO.Respect.Unknown;
+    private readonly Gpo.Respect mGPORespect = Gpo.Respect.Unknown;
     private readonly float mSearchBoxHeight;
     private readonly MenuItem mToolsMenu;
     private readonly float mWinVersion;
@@ -64,7 +65,7 @@ public partial class WuMgr : Form
         InitializeComponent();
 
         //notifyIcon1.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        notifyIcon.Text = Program.mName;
+        notifyIcon.Text = Program.MName;
 
         if (Program.TestArg("-tray"))
         {
@@ -73,7 +74,7 @@ public partial class WuMgr : Form
         }
 
         if (!MiscFunc.IsRunningAsUwp())
-            Text = $"{Program.mName} v{Program.mVersion} by David Xanatos";
+            Text = $"{Program.MName} v{Program.MVersion} by David Xanatos";
 
         Localize();
 
@@ -98,47 +99,47 @@ public partial class WuMgr : Form
         agent.Finished += OnFinished;
 
         if (!agent.IsActive())
-            if (MessageBox.Show(Translate.fmt("msg_wuau"), Program.mName, MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show(Translate.Fmt("msg_wuau"), Program.MName, MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 agent.EnableWuAuServ();
                 agent.Init();
             }
 
         mSuspendUpdate = true;
-        chkDrivers.CheckState = (CheckState)GPO.GetDriverAU();
+        chkDrivers.CheckState = (CheckState)Gpo.GetDriverAu();
 
-        mGPORespect = GPO.GetRespect();
-        mWinVersion = GPO.GetWinVersion();
+        mGPORespect = Gpo.GetRespect();
+        mWinVersion = Gpo.GetWinVersion();
 
         if (mWinVersion < 10) // 8.1 or below
             chkHideWU.Enabled = false;
-        chkHideWU.Checked = GPO.IsUpdatePageHidden();
+        chkHideWU.Checked = Gpo.IsUpdatePageHidden();
 
-        if (mGPORespect == GPO.Respect.Partial || mGPORespect == GPO.Respect.None)
+        if (mGPORespect == Gpo.Respect.Partial || mGPORespect == Gpo.Respect.None)
             radSchedule.Enabled = radDownload.Enabled = radNotify.Enabled = false;
-        else if (mGPORespect == GPO.Respect.Unknown)
+        else if (mGPORespect == Gpo.Respect.Unknown)
             AppLog.Line("Unrecognized Windows Edition, respect for GPO settings is unknown.");
 
-        if (mGPORespect == GPO.Respect.None)
+        if (mGPORespect == Gpo.Respect.None)
             chkBlockMS.Enabled = false;
-        chkBlockMS.CheckState = (CheckState)GPO.GetBlockMS();
+        chkBlockMS.CheckState = (CheckState)Gpo.GetBlockMs();
 
         int day, time;
-        switch (GPO.GetAU(out day, out time))
+        switch (Gpo.GetAU(out day, out time))
         {
-            case GPO.AUOptions.Default:
+            case Gpo.AuOptions.Default:
                 radDefault.Checked = true;
                 break;
-            case GPO.AUOptions.Disabled:
+            case Gpo.AuOptions.Disabled:
                 radDisable.Checked = true;
                 break;
-            case GPO.AUOptions.Notification:
+            case Gpo.AuOptions.Notification:
                 radNotify.Checked = true;
                 break;
-            case GPO.AUOptions.Download:
+            case Gpo.AuOptions.Download:
                 radDownload.Checked = true;
                 break;
-            case GPO.AUOptions.Scheduled:
+            case Gpo.AuOptions.Scheduled:
                 radSchedule.Checked = true;
                 break;
         }
@@ -153,15 +154,15 @@ public partial class WuMgr : Form
         }
 
         if (mWinVersion >= 10) // 10 or abive
-            chkDisableAU.Checked = GPO.GetDisableAU();
+            chkDisableAU.Checked = Gpo.GetDisableAu();
 
         if (mWinVersion < 6.2) // win 7 or below
             chkStore.Enabled = false;
-        chkStore.Checked = GPO.GetStoreAU();
+        chkStore.Checked = Gpo.GetStoreAu();
 
         try
         {
-            dlAutoCheck.SelectedIndex = MiscFunc.parseInt(GetConfig("AutoUpdate", "0"));
+            dlAutoCheck.SelectedIndex = MiscFunc.ParseInt(GetConfig("AutoUpdate", "0"));
         }
         catch
         {
@@ -170,15 +171,15 @@ public partial class WuMgr : Form
         chkAutoRun.Checked = Program.IsAutoStart();
         if (MiscFunc.IsRunningAsUwp() && chkAutoRun.CheckState == CheckState.Checked)
             chkAutoRun.Enabled = false;
-        IdleDelay = MiscFunc.parseInt(GetConfig("IdleDelay", "20"));
+        IdleDelay = MiscFunc.ParseInt(GetConfig("IdleDelay", "20"));
         chkNoUAC.Checked = Program.IsSkipUacRun();
         chkNoUAC.Enabled = MiscFunc.IsAdministrator();
         chkNoUAC.Visible = chkNoUAC.Enabled || chkNoUAC.Checked || !MiscFunc.IsRunningAsUwp();
 
 
-        chkOffline.Checked = MiscFunc.parseInt(GetConfig("Offline", "0")) != 0;
-        chkDownload.Checked = MiscFunc.parseInt(GetConfig("Download", "1")) != 0;
-        chkManual.Checked = MiscFunc.parseInt(GetConfig("Manual", "0")) != 0;
+        chkOffline.Checked = MiscFunc.ParseInt(GetConfig("Offline", "0")) != 0;
+        chkDownload.Checked = MiscFunc.ParseInt(GetConfig("Download", "1")) != 0;
+        chkManual.Checked = MiscFunc.ParseInt(GetConfig("Manual", "0")) != 0;
         if (!MiscFunc.IsAdministrator())
         {
             if (MiscFunc.IsRunningAsUwp())
@@ -193,14 +194,14 @@ public partial class WuMgr : Form
             chkMsUpd.Enabled = false;
         }
 
-        chkMsUpd.Checked = agent.IsActive() && agent.TestService(WuAgent.MsUpdGUID);
+        chkMsUpd.Checked = agent.IsActive() && agent.TestService(WuAgent.MsUpdGuid);
 
         // Note: when running in the UWP sandbox we cant write the real registry even as admins
         if (!MiscFunc.IsAdministrator() || MiscFunc.IsRunningAsUwp())
             foreach (Control ctl in tabAU.Controls)
                 ctl.Enabled = false;
 
-        chkOld.Checked = MiscFunc.parseInt(GetConfig("IncludeOld", "0")) != 0;
+        chkOld.Checked = MiscFunc.ParseInt(GetConfig("IncludeOld", "0")) != 0;
         string source = GetConfig("Source", "Windows Update");
 
         string Online = Program.GetArg("-online");
@@ -240,7 +241,7 @@ public partial class WuMgr : Form
         mSearchBoxHeight = panelList.RowStyles[2].Height;
         panelList.RowStyles[2].Height = 0;
 
-        chkGrupe.Checked = MiscFunc.parseInt(GetConfig("GroupUpdates", "1")) != 0;
+        chkGrupe.Checked = MiscFunc.ParseInt(GetConfig("GroupUpdates", "1")) != 0;
         updateView.ShowGroups = chkGrupe.Checked;
 
         mSuspendUpdate = false;
@@ -251,18 +252,18 @@ public partial class WuMgr : Form
 
 
         mToolsMenu = new MenuItem();
-        mToolsMenu.Text = Translate.fmt("menu_tools");
+        mToolsMenu.Text = Translate.Fmt("menu_tools");
 
         BuildToolsMenu();
 
         notifyIcon.ContextMenu = new ContextMenu();
 
         MenuItem menuAbout = new();
-        menuAbout.Text = Translate.fmt("menu_about");
+        menuAbout.Text = Translate.Fmt("menu_about");
         menuAbout.Click += menuAbout_Click;
 
         MenuItem menuExit = new();
-        menuExit.Text = Translate.fmt("menu_exit");
+        menuExit.Text = Translate.Fmt("menu_exit");
         menuExit.Click += menuExit_Click;
 
         notifyIcon.ContextMenu.MenuItems.AddRange(new[] { mToolsMenu, menuAbout, new("-"), menuExit });
@@ -284,8 +285,8 @@ public partial class WuMgr : Form
         mTimer.Tick += OnTimedEvent;
         mTimer.Enabled = true;
 
-        Program.ipc.PipeMessage += PipesMessageHandler;
-        Program.ipc.Listen();
+        Program.Ipc.PipeMessage += PipesMessageHandler;
+        Program.Ipc.Listen();
     }
 
     [DllImport("user32.dll")]
@@ -333,7 +334,7 @@ public partial class WuMgr : Form
         base.SetVisibleCore(allowshowdisplay ? value : allowshowdisplay);
     }
 
-    private void PipesMessageHandler(PipeIPC.PipeServer pipe, string data)
+    private void PipesMessageHandler(PipeIpc.PipeServer pipe, string data)
     {
         if (data.Equals("show", StringComparison.CurrentCultureIgnoreCase))
         {
@@ -366,17 +367,17 @@ public partial class WuMgr : Form
                     if (LastBaloon < DateTime.Now.AddHours(-4))
                     {
                         LastBaloon = DateTime.Now;
-                        notifyIcon.ShowBalloonTip(int.MaxValue, Translate.fmt("cap_chk_upd"),
-                            Translate.fmt("msg_chk_upd", Program.mName, daysDue), ToolTipIcon.Warning);
+                        notifyIcon.ShowBalloonTip(int.MaxValue, Translate.Fmt("cap_chk_upd"),
+                            Translate.Fmt("msg_chk_upd", Program.MName, daysDue), ToolTipIcon.Warning);
                     }
                 }
             }
 
-            if (agent.mPendingUpdates.Count > 0)
+            if (agent.MPendingUpdates.Count > 0)
                 if (LastBaloon < DateTime.Now.AddHours(-4))
                 {
                     LastBaloon = DateTime.Now;
-                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.fmt("cap_new_upd"), Translate.fmt("msg_new_upd", Program.mName, string.Join(Environment.NewLine, agent.mPendingUpdates.Select(x => $"- {x.Title}"))), ToolTipIcon.Info);
+                    notifyIcon.ShowBalloonTip(int.MaxValue, Translate.Fmt("cap_new_upd"), Translate.Fmt("msg_new_upd", Program.MName, string.Join(Environment.NewLine, agent.MPendingUpdates.Select(x => $"- {x.Title}"))), ToolTipIcon.Info);
                 }
         }
 
@@ -474,9 +475,9 @@ public partial class WuMgr : Form
     private void LoadProviders(string source = null)
     {
         dlSource.Items.Clear();
-        for (int i = 0; i < agent.mServiceList.Count; i++)
+        for (int i = 0; i < agent.MServiceList.Count; i++)
         {
-            string service = agent.mServiceList[i];
+            string service = agent.MServiceList[i];
             dlSource.Items.Add(service);
 
             if (source != null && service.Equals(source, StringComparison.CurrentCultureIgnoreCase))
@@ -486,10 +487,10 @@ public partial class WuMgr : Form
 
     private void UpdateCounts()
     {
-        btnWinUpd.Text = Translate.fmt("lbl_fnd_upd", agent.mPendingUpdates.Count);
-        btnInstalled.Text = Translate.fmt("lbl_inst_upd", agent.mInstalledUpdates.Count);
-        btnHidden.Text = Translate.fmt("lbl_block_upd", agent.mHiddenUpdates.Count);
-        btnHistory.Text = Translate.fmt("lbl_old_upd", agent.mUpdateHistory.Count);
+        btnWinUpd.Text = Translate.Fmt("lbl_fnd_upd", agent.MPendingUpdates.Count);
+        btnInstalled.Text = Translate.Fmt("lbl_inst_upd", agent.MInstalledUpdates.Count);
+        btnHidden.Text = Translate.Fmt("lbl_block_upd", agent.MHiddenUpdates.Count);
+        btnHistory.Text = Translate.Fmt("lbl_old_upd", agent.MUpdateHistory.Count);
     }
 
     private void LoadList()
@@ -502,23 +503,23 @@ public partial class WuMgr : Form
         switch (CurrentList)
         {
             case UpdateLists.PendingUpdates:
-                LoadList(agent.mPendingUpdates);
+                LoadList(agent.MPendingUpdates);
                 break;
             case UpdateLists.InstaledUpdates:
-                LoadList(agent.mInstalledUpdates);
+                LoadList(agent.MInstalledUpdates);
                 break;
             case UpdateLists.HiddenUpdates:
-                LoadList(agent.mHiddenUpdates);
+                LoadList(agent.MHiddenUpdates);
                 break;
             case UpdateLists.UpdateHistory:
-                LoadList(agent.mUpdateHistory);
+                LoadList(agent.MUpdateHistory);
                 break;
         }
     }
 
     private void LoadList(List<MsUpdate> List)
     {
-        string INIPath = Program.wrkPath + @"\Updates.ini";
+        string INIPath = Program.WrkPath + @"\Updates.ini";
 
         updateView.Items.Clear();
         List<ListViewItem> items = new();
@@ -532,22 +533,22 @@ public partial class WuMgr : Form
                     switch ((OperationResultCode)Update.ResultCode)
                     {
                         case OperationResultCode.orcNotStarted:
-                            State = Translate.fmt("stat_not_start");
+                            State = Translate.Fmt("stat_not_start");
                             break;
                         case OperationResultCode.orcInProgress:
-                            State = Translate.fmt("stat_in_prog");
+                            State = Translate.Fmt("stat_in_prog");
                             break;
                         case OperationResultCode.orcSucceeded:
-                            State = Translate.fmt("stat_success");
+                            State = Translate.Fmt("stat_success");
                             break;
                         case OperationResultCode.orcSucceededWithErrors:
-                            State = Translate.fmt("stat_success_2");
+                            State = Translate.Fmt("stat_success_2");
                             break;
                         case OperationResultCode.orcFailed:
-                            State = Translate.fmt("stat_failed");
+                            State = Translate.Fmt("stat_failed");
                             break;
                         case OperationResultCode.orcAborted:
-                            State = Translate.fmt("stat_abbort");
+                            State = Translate.Fmt("stat_abbort");
                             break;
                     }
 
@@ -556,37 +557,37 @@ public partial class WuMgr : Form
 
                 default:
                     if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Beta) != 0)
-                        State = Translate.fmt("stat_beta" + " ");
+                        State = Translate.Fmt("stat_beta" + " ");
 
                     if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Installed) != 0)
                     {
-                        State += Translate.fmt("stat_install");
+                        State += Translate.Fmt("stat_install");
                         if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Uninstallable) != 0)
-                            State += " " + Translate.fmt("stat_rem");
+                            State += " " + Translate.Fmt("stat_rem");
                     }
                     else if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Hidden) != 0)
                     {
-                        State += Translate.fmt("stat_block");
+                        State += Translate.Fmt("stat_block");
                         if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Downloaded) != 0)
-                            State += " " + Translate.fmt("stat_dl");
+                            State += " " + Translate.Fmt("stat_dl");
                     }
                     else
                     {
                         if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Downloaded) != 0)
-                            State += Translate.fmt("stat_dl");
+                            State += Translate.Fmt("stat_dl");
                         else
-                            State += Translate.fmt("stat_pending");
+                            State += Translate.Fmt("stat_pending");
                         if ((Update.Attributes & (int)MsUpdate.UpdateAttr.AutoSelect) != 0)
-                            State += " " + Translate.fmt("stat_sel");
+                            State += " " + Translate.Fmt("stat_sel");
                         if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Mandatory) != 0)
-                            State += " " + Translate.fmt("stat_mand");
+                            State += " " + Translate.Fmt("stat_mand");
                     }
 
                     if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Exclusive) != 0)
-                        State += ", " + Translate.fmt("stat_excl");
+                        State += ", " + Translate.Fmt("stat_excl");
 
                     if ((Update.Attributes & (int)MsUpdate.UpdateAttr.Reboot) != 0)
-                        State += ", " + Translate.fmt("stat_reboot");
+                        State += ", " + Translate.Fmt("stat_reboot");
                     break;
             }
 
@@ -595,7 +596,7 @@ public partial class WuMgr : Form
             {
                 Update.Title,
                 Update.Category,
-                CurrentList == UpdateLists.UpdateHistory ? Update.ApplicationID : Update.KB,
+                CurrentList == UpdateLists.UpdateHistory ? Update.ApplicationId : Update.Kb,
                 Update.Date.ToString(CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern),
                 FileOps.FormatSize(Update.Size),
                 State
@@ -624,21 +625,21 @@ public partial class WuMgr : Form
 
             if (CurrentList == UpdateLists.PendingUpdates)
             {
-                if (MiscFunc.parseInt(Program.IniReadValue(Update.KB, "BlackList", "0", INIPath)) != 0)
+                if (MiscFunc.ParseInt(Program.IniReadValue(Update.Kb, "BlackList", "0", INIPath)) != 0)
                     item.Font = new Font(item.Font.FontFamily, item.Font.Size, FontStyle.Strikeout);
-                else if (MiscFunc.parseInt(Program.IniReadValue(Update.KB, "Select", "0", INIPath)) != 0)
+                else if (MiscFunc.ParseInt(Program.IniReadValue(Update.Kb, "Select", "0", INIPath)) != 0)
                     item.Checked = true;
             }
             else if (CurrentList == UpdateLists.InstaledUpdates)
             {
-                if (MiscFunc.parseInt(Program.IniReadValue(Update.KB, "Remove", "0", INIPath)) != 0)
+                if (MiscFunc.ParseInt(Program.IniReadValue(Update.Kb, "Remove", "0", INIPath)) != 0)
                     item.Checked = true;
             }
 
-            string colorStr = Program.IniReadValue(Update.KB, "Color", "", INIPath);
+            string colorStr = Program.IniReadValue(Update.Kb, "Color", "", INIPath);
             if (colorStr.Length > 0)
             {
-                Color? color = MiscFunc.parseColor(colorStr);
+                Color? color = MiscFunc.ParseColor(colorStr);
                 if (color != null)
                     item.BackColor = (Color)color;
             }
@@ -683,8 +684,8 @@ public partial class WuMgr : Form
         CurrentList = List;
 
         updateView.Columns[2].Text = CurrentList == UpdateLists.UpdateHistory
-            ? Translate.fmt("col_app_id")
-            : Translate.fmt("col_kb");
+            ? Translate.Fmt("col_app_id")
+            : Translate.Fmt("col_kb");
 
         LoadList();
 
@@ -722,7 +723,7 @@ public partial class WuMgr : Form
     private void BuildToolsMenu()
     {
         wuauMenu = new MenuItem();
-        wuauMenu.Text = Translate.fmt("menu_wuau");
+        wuauMenu.Text = Translate.Fmt("menu_wuau");
         wuauMenu.Checked = agent.TestWuAuServ();
         wuauMenu.Click += menuWuAu_Click;
         mToolsMenu.MenuItems.Add(wuauMenu);
@@ -739,7 +740,7 @@ public partial class WuMgr : Form
                 toolMenu.Text = Program.IniReadValue("Root", "Name", Name, INIPath);
 
                 string Exec = Program.IniReadValue("Root", "Exec", "", INIPath);
-                bool Silent = MiscFunc.parseInt(Program.IniReadValue("Root", "Silent", "0", INIPath)) != 0;
+                bool Silent = MiscFunc.ParseInt(Program.IniReadValue("Root", "Silent", "0", INIPath)) != 0;
                 if (Exec.Length > 0)
                 {
                     toolMenu.Click += delegate(object sender, EventArgs e)
@@ -749,7 +750,7 @@ public partial class WuMgr : Form
                 }
                 else
                 {
-                    int count = MiscFunc.parseInt(Program.IniReadValue("Root", "Entries", "", INIPath), 99);
+                    int count = MiscFunc.ParseInt(Program.IniReadValue("Root", "Entries", "", INIPath), 99);
                     for (int i = 1; i <= count; i++)
                     {
                         string name = Program.IniReadValue("Entry" + i, "Name", "", INIPath);
@@ -764,7 +765,7 @@ public partial class WuMgr : Form
                         subMenu.Text = name;
 
                         string exec = Program.IniReadValue("Entry" + i, "Exec", "", INIPath);
-                        bool silent = MiscFunc.parseInt(Program.IniReadValue("Entry" + i, "Silent", "0", INIPath)) != 0;
+                        bool silent = MiscFunc.ParseInt(Program.IniReadValue("Entry" + i, "Silent", "0", INIPath)) != 0;
                         subMenu.Click += delegate(object sender, EventArgs e)
                         {
                             menuExec_Click(sender, e, exec, subDir, silent);
@@ -781,7 +782,7 @@ public partial class WuMgr : Form
         }
 
         MenuItem refreshMenu = new();
-        refreshMenu.Text = Translate.fmt("menu_refresh");
+        refreshMenu.Text = Translate.Fmt("menu_refresh");
         refreshMenu.Click += menuRefresh_Click;
         mToolsMenu.MenuItems.Add(refreshMenu);
     }
@@ -791,7 +792,7 @@ public partial class WuMgr : Form
         ProcessStartInfo startInfo = Program.PrepExec(exec, silent);
         startInfo.WorkingDirectory = dir;
         if (!Program.DoExec(startInfo))
-            MessageBox.Show(Translate.fmt("msg_tool_err"), Program.mName);
+            MessageBox.Show(Translate.Fmt("msg_tool_err"), Program.MName);
     }
 
     private void menuExit_Click(object Sender, EventArgs e)
@@ -804,12 +805,12 @@ public partial class WuMgr : Form
         string About = "";
         About += "Author: \tDavid Xanatos\r\n";
         About += "Licence: \tGNU General Public License v3\r\n";
-        About += string.Format("Version: \t{0}\r\n", Program.mVersion);
+        About += string.Format("Version: \t{0}\r\n", Program.MVersion);
         About += "\r\n";
         About += "Source: \thttps://github.com/DavidXanatos/wumgr\r\n";
         About += "\r\n";
         About += "Icons from: https://icons8.com/";
-        MessageBox.Show(About, Program.mName);
+        MessageBox.Show(About, Program.MName);
     }
 
     private void menuWuAu_Click(object Sender, EventArgs e)
@@ -835,7 +836,7 @@ public partial class WuMgr : Form
         RemoveMenu(MenuHandle, 6, MF_BYPOSITION);
         mToolsMenu.MenuItems.Clear();
         BuildToolsMenu();
-        InsertMenu(MenuHandle, 6, MF_BYPOSITION | MF_POPUP, (int)mToolsMenu.Handle, Translate.fmt("menu_tools"));
+        InsertMenu(MenuHandle, 6, MF_BYPOSITION | MF_POPUP, (int)mToolsMenu.Handle, Translate.Fmt("menu_tools"));
     }
 
     private void btnWinUpd_CheckedChanged(object sender, EventArgs e)
@@ -876,7 +877,7 @@ public partial class WuMgr : Form
     {
         if (!chkManual.Checked && !MiscFunc.IsAdministrator())
         {
-            MessageBox.Show(Translate.fmt("msg_admin_dl"), Program.mName);
+            MessageBox.Show(Translate.Fmt("msg_admin_dl"), Program.MName);
             return;
         }
 
@@ -894,7 +895,7 @@ public partial class WuMgr : Form
     {
         if (!MiscFunc.IsAdministrator())
         {
-            MessageBox.Show(Translate.fmt("msg_admin_inst"), Program.mName);
+            MessageBox.Show(Translate.Fmt("msg_admin_inst"), Program.MName);
             return;
         }
 
@@ -912,7 +913,7 @@ public partial class WuMgr : Form
     {
         if (!MiscFunc.IsAdministrator())
         {
-            MessageBox.Show(Translate.fmt("msg_admin_rem"), Program.mName);
+            MessageBox.Show(Translate.Fmt("msg_admin_rem"), Program.MName);
             return;
         }
 
@@ -969,16 +970,16 @@ public partial class WuMgr : Form
     {
         switch (op)
         {
-            case WuAgent.AgentOperation.CheckingUpdates: return Translate.fmt("op_check");
-            case WuAgent.AgentOperation.PreparingCheck: return Translate.fmt("op_prep");
+            case WuAgent.AgentOperation.CheckingUpdates: return Translate.Fmt("op_check");
+            case WuAgent.AgentOperation.PreparingCheck: return Translate.Fmt("op_prep");
             case WuAgent.AgentOperation.PreparingUpdates:
-            case WuAgent.AgentOperation.DownloadingUpdates: return Translate.fmt("op_dl");
-            case WuAgent.AgentOperation.InstallingUpdates: return Translate.fmt("op_inst");
-            case WuAgent.AgentOperation.RemoveingUpdates: return Translate.fmt("op_rem");
-            case WuAgent.AgentOperation.CancelingOperation: return Translate.fmt("op_cancel");
+            case WuAgent.AgentOperation.DownloadingUpdates: return Translate.Fmt("op_dl");
+            case WuAgent.AgentOperation.InstallingUpdates: return Translate.Fmt("op_inst");
+            case WuAgent.AgentOperation.RemoveingUpdates: return Translate.Fmt("op_rem");
+            case WuAgent.AgentOperation.CancelingOperation: return Translate.Fmt("op_cancel");
         }
 
-        return Translate.fmt("op_unk");
+        return Translate.Fmt("op_unk");
     }
 
     private void OnProgress(object sender, WuAgent.ProgressArgs args)
@@ -1025,7 +1026,7 @@ public partial class WuMgr : Form
         {
             LoadList();
 
-            if (MiscFunc.parseInt(Program.IniReadValue("Options", "Refresh", "0")) == 1 &&
+            if (MiscFunc.ParseInt(Program.IniReadValue("Options", "Refresh", "0")) == 1 &&
                 (agent.CurOperation() == WuAgent.AgentOperation.InstallingUpdates ||
                  agent.CurOperation() == WuAgent.AgentOperation.RemoveingUpdates))
                 doUpdte = true;
@@ -1047,14 +1048,14 @@ public partial class WuMgr : Form
         {
             if (ret == WuAgent.RetCodes.Success)
             {
-                MessageBox.Show(Translate.fmt("msg_dl_done", agent.dlPath), Program.mName, MessageBoxButtons.OK,
+                MessageBox.Show(Translate.Fmt("msg_dl_done", agent.DlPath), Program.MName, MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
 
             if (ret == WuAgent.RetCodes.DownloadFailed)
             {
-                MessageBox.Show(Translate.fmt("msg_dl_err", agent.dlPath), Program.mName, MessageBoxButtons.OK,
+                MessageBox.Show(Translate.Fmt("msg_dl_err", agent.DlPath), Program.MName, MessageBoxButtons.OK,
                     MessageBoxIcon.Exclamation);
                 return;
             }
@@ -1064,14 +1065,14 @@ public partial class WuMgr : Form
         {
             if (ret == WuAgent.RetCodes.Success)
             {
-                MessageBox.Show(Translate.fmt("msg_inst_done", agent.dlPath), Program.mName, MessageBoxButtons.OK,
+                MessageBox.Show(Translate.Fmt("msg_inst_done", agent.DlPath), Program.MName, MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
 
             if (ret == WuAgent.RetCodes.DownloadFailed)
             {
-                MessageBox.Show(Translate.fmt("msg_inst_err", agent.dlPath), Program.mName, MessageBoxButtons.OK,
+                MessageBox.Show(Translate.Fmt("msg_inst_err", agent.DlPath), Program.MName, MessageBoxButtons.OK,
                     MessageBoxIcon.Exclamation);
                 return;
             }
@@ -1084,32 +1085,32 @@ public partial class WuMgr : Form
             case WuAgent.RetCodes.Abborted:
             case WuAgent.RetCodes.InProgress: return;
             case WuAgent.RetCodes.AccessError:
-                status = Translate.fmt("err_admin");
+                status = Translate.Fmt("err_admin");
                 break;
             case WuAgent.RetCodes.Busy:
-                status = Translate.fmt("err_busy");
+                status = Translate.Fmt("err_busy");
                 break;
             case WuAgent.RetCodes.DownloadFailed:
-                status = Translate.fmt("err_dl");
+                status = Translate.Fmt("err_dl");
                 break;
             case WuAgent.RetCodes.InstallFailed:
-                status = Translate.fmt("err_inst");
+                status = Translate.Fmt("err_inst");
                 break;
             case WuAgent.RetCodes.NoUpdated:
-                status = Translate.fmt("err_no_sel");
+                status = Translate.Fmt("err_no_sel");
                 break;
             case WuAgent.RetCodes.InternalError:
-                status = Translate.fmt("err_int");
+                status = Translate.Fmt("err_int");
                 break;
             case WuAgent.RetCodes.FileNotFound:
-                status = Translate.fmt("err_file");
+                status = Translate.Fmt("err_file");
                 break;
         }
 
         string action = GetOpStr(op);
 
         ResultShown = true;
-        MessageBox.Show(Translate.fmt("msg_err", action, status), Program.mName, MessageBoxButtons.OK,
+        MessageBox.Show(Translate.Fmt("msg_err", action, status), Program.MName, MessageBoxButtons.OK,
             MessageBoxIcon.Error);
         ResultShown = false;
     }
@@ -1141,21 +1142,21 @@ public partial class WuMgr : Form
     {
         if (mSuspendUpdate)
             return;
-        GPO.ConfigDriverAU((int)chkDrivers.CheckState);
+        Gpo.ConfigDriverAu((int)chkDrivers.CheckState);
     }
 
     private void dlShDay_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (mSuspendUpdate)
             return;
-        GPO.ConfigAU(GPO.AUOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
+        Gpo.ConfigAU(Gpo.AuOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
     }
 
     private void dlShTime_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (mSuspendUpdate)
             return;
-        GPO.ConfigAU(GPO.AUOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
+        Gpo.ConfigAU(Gpo.AuOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
     }
 
     private void radGPO_CheckedChanged(object sender, EventArgs e)
@@ -1165,19 +1166,19 @@ public partial class WuMgr : Form
         if (radDisable.Checked)
             switch (mGPORespect)
             {
-                case GPO.Respect.Partial:
+                case Gpo.Respect.Partial:
                     if (chkBlockMS.Checked)
                     {
                         chkDisableAU.Enabled = true;
                         break;
                     }
 
-                    goto case GPO.Respect.None;
-                case GPO.Respect.None:
+                    goto case Gpo.Respect.None;
+                case Gpo.Respect.None:
                     chkDisableAU.Enabled = false;
                     chkDisableAU.Checked = true;
                     break;
-                case GPO.Respect.Full: // we can do whatever we want
+                case Gpo.Respect.Full: // we can do whatever we want
                     chkDisableAU.Enabled = mWinVersion >= 10;
                     break;
             }
@@ -1191,26 +1192,26 @@ public partial class WuMgr : Form
         {
             if (chkDisableAU.Checked)
             {
-                bool test = GPO.GetDisableAU();
-                GPO.DisableAU(true);
+                bool test = Gpo.GetDisableAu();
+                Gpo.DisableAu(true);
                 if (!test)
-                    MessageBox.Show(Translate.fmt("msg_disable_au"));
+                    MessageBox.Show(Translate.Fmt("msg_disable_au"));
             }
 
-            GPO.ConfigAU(GPO.AUOptions.Disabled);
+            Gpo.ConfigAU(Gpo.AuOptions.Disabled);
         }
         else
         {
             chkDisableAU.Checked = false; // Note: this triggers chkDisableAU_CheckedChanged
 
             if (radNotify.Checked)
-                GPO.ConfigAU(GPO.AUOptions.Notification);
+                Gpo.ConfigAU(Gpo.AuOptions.Notification);
             else if (radDownload.Checked)
-                GPO.ConfigAU(GPO.AUOptions.Download);
+                Gpo.ConfigAU(Gpo.AuOptions.Download);
             else if (radSchedule.Checked)
-                GPO.ConfigAU(GPO.AUOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
+                Gpo.ConfigAU(Gpo.AuOptions.Scheduled, dlShDay.SelectedIndex, dlShTime.SelectedIndex);
             else //if (radDefault.Checked)
-                GPO.ConfigAU(GPO.AUOptions.Default);
+                Gpo.ConfigAU(Gpo.AuOptions.Default);
         }
     }
 
@@ -1219,7 +1220,7 @@ public partial class WuMgr : Form
         if (mSuspendUpdate)
             return;
 
-        if (radDisable.Checked && mGPORespect == GPO.Respect.Partial)
+        if (radDisable.Checked && mGPORespect == Gpo.Respect.Partial)
         {
             if (chkBlockMS.Checked)
             {
@@ -1228,7 +1229,7 @@ public partial class WuMgr : Form
             else
             {
                 if (!chkDisableAU.Checked)
-                    switch (MessageBox.Show(Translate.fmt("msg_gpo"), Program.mName, MessageBoxButtons.YesNoCancel))
+                    switch (MessageBox.Show(Translate.Fmt("msg_gpo"), Program.MName, MessageBoxButtons.YesNoCancel))
                     {
                         case DialogResult.Yes:
                             chkDisableAU.Checked = true; // Note: this triggers chkDisableAU_CheckedChanged
@@ -1247,7 +1248,7 @@ public partial class WuMgr : Form
             }
         }
 
-        GPO.BlockMS(chkBlockMS.Checked);
+        Gpo.BlockMs(chkBlockMS.Checked);
     }
 
     private void chkDisableAU_CheckedChanged(object sender, EventArgs e)
@@ -1265,10 +1266,10 @@ public partial class WuMgr : Form
 
         if (mSuspendUpdate)
             return;
-        bool test = GPO.GetDisableAU();
-        GPO.DisableAU(chkDisableAU.Checked);
+        bool test = Gpo.GetDisableAu();
+        Gpo.DisableAu(chkDisableAU.Checked);
         if (test != chkDisableAU.Checked)
-            MessageBox.Show(Translate.fmt("msg_disable_au"));
+            MessageBox.Show(Translate.Fmt("msg_disable_au"));
     }
 
     private void chkAutoRun_CheckedChanged(object sender, EventArgs e)
@@ -1314,7 +1315,7 @@ public partial class WuMgr : Form
         if (mSuspendUpdate)
             return;
         string source = dlSource.Text;
-        agent.EnableService(WuAgent.MsUpdGUID, chkMsUpd.Checked);
+        agent.EnableService(WuAgent.MsUpdGuid, chkMsUpd.Checked);
         LoadProviders(source);
     }
 
@@ -1328,14 +1329,14 @@ public partial class WuMgr : Form
     {
         if (mSuspendUpdate)
             return;
-        GPO.HideUpdatePage(chkHideWU.Checked);
+        Gpo.HideUpdatePage(chkHideWU.Checked);
     }
 
     private void chkStore_CheckedChanged(object sender, EventArgs e)
     {
         if (mSuspendUpdate)
             return;
-        GPO.SetStoreAU(chkStore.Checked);
+        Gpo.SetStoreAu(chkStore.Checked);
     }
 
     private void updateView_SelectedIndexChanged(object sender, EventArgs e)
@@ -1344,9 +1345,9 @@ public partial class WuMgr : Form
         if (updateView.SelectedItems.Count == 1)
         {
             MsUpdate Update = (MsUpdate)updateView.SelectedItems[0].Tag;
-            if (Update.KB != null && Update.KB.Length > 2)
+            if (Update.Kb != null && Update.Kb.Length > 2)
             {
-                lblSupport.Links[0].LinkData = "https://support.microsoft.com/help/" + Update.KB.Substring(2);
+                lblSupport.Links[0].LinkData = "https://support.microsoft.com/help/" + Update.Kb.Substring(2);
                 lblSupport.Links[0].Visited = false;
                 lblSupport.Visible = true;
                 toolTip.SetToolTip(lblSupport, lblSupport.Links[0].LinkData.ToString());
@@ -1404,66 +1405,66 @@ public partial class WuMgr : Form
 
     private void Localize()
     {
-        btnWinUpd.Text = Translate.fmt("lbl_fnd_upd", 0);
-        btnInstalled.Text = Translate.fmt("lbl_inst_upd", 0);
-        btnHidden.Text = Translate.fmt("lbl_block_upd", 0);
-        btnHistory.Text = Translate.fmt("lbl_old_upd", 0);
+        btnWinUpd.Text = Translate.Fmt("lbl_fnd_upd", 0);
+        btnInstalled.Text = Translate.Fmt("lbl_inst_upd", 0);
+        btnHidden.Text = Translate.Fmt("lbl_block_upd", 0);
+        btnHistory.Text = Translate.Fmt("lbl_old_upd", 0);
 
-        toolTip.SetToolTip(btnSearch, Translate.fmt("tip_search"));
-        toolTip.SetToolTip(btnInstall, Translate.fmt("tip_inst"));
-        toolTip.SetToolTip(btnDownload, Translate.fmt("tip_dl"));
-        toolTip.SetToolTip(btnHide, Translate.fmt("tip_hide"));
-        toolTip.SetToolTip(btnGetLink, Translate.fmt("tip_lnk"));
-        toolTip.SetToolTip(btnUnInstall, Translate.fmt("tip_rem"));
-        toolTip.SetToolTip(btnCancel, Translate.fmt("tip_cancel"));
+        toolTip.SetToolTip(btnSearch, Translate.Fmt("tip_search"));
+        toolTip.SetToolTip(btnInstall, Translate.Fmt("tip_inst"));
+        toolTip.SetToolTip(btnDownload, Translate.Fmt("tip_dl"));
+        toolTip.SetToolTip(btnHide, Translate.Fmt("tip_hide"));
+        toolTip.SetToolTip(btnGetLink, Translate.Fmt("tip_lnk"));
+        toolTip.SetToolTip(btnUnInstall, Translate.Fmt("tip_rem"));
+        toolTip.SetToolTip(btnCancel, Translate.Fmt("tip_cancel"));
 
-        updateView.Columns[0].Text = Translate.fmt("col_title");
-        updateView.Columns[1].Text = Translate.fmt("col_cat");
-        updateView.Columns[2].Text = Translate.fmt("col_kb");
-        updateView.Columns[3].Text = Translate.fmt("col_date");
-        updateView.Columns[4].Text = Translate.fmt("col_site");
-        updateView.Columns[5].Text = Translate.fmt("col_stat");
+        updateView.Columns[0].Text = Translate.Fmt("col_title");
+        updateView.Columns[1].Text = Translate.Fmt("col_cat");
+        updateView.Columns[2].Text = Translate.Fmt("col_kb");
+        updateView.Columns[3].Text = Translate.Fmt("col_date");
+        updateView.Columns[4].Text = Translate.Fmt("col_site");
+        updateView.Columns[5].Text = Translate.Fmt("col_stat");
 
-        chkGrupe.Text = Translate.fmt("lbl_group");
-        chkAll.Text = Translate.fmt("lbl_all");
+        chkGrupe.Text = Translate.Fmt("lbl_group");
+        chkAll.Text = Translate.Fmt("lbl_all");
 
-        lblSupport.Text = Translate.fmt("lbl_support");
-        lblPatreon.Text = Translate.fmt("lbl_patreon");
+        lblSupport.Text = Translate.Fmt("lbl_support");
+        lblPatreon.Text = Translate.Fmt("lbl_patreon");
         //string cc = "";
         //toolTip.SetToolTip(lblPatreon, cc);
 
-        lblSearch.Text = Translate.fmt("lbl_search");
+        lblSearch.Text = Translate.Fmt("lbl_search");
 
-        tabOptions.Text = Translate.fmt("lbl_opt");
+        tabOptions.Text = Translate.Fmt("lbl_opt");
 
-        chkOffline.Text = Translate.fmt("lbl_off");
-        chkDownload.Text = Translate.fmt("lbl_dl");
-        chkManual.Text = Translate.fmt("lbl_man");
-        chkOld.Text = Translate.fmt("lbl_old");
-        chkMsUpd.Text = Translate.fmt("lbl_ms");
+        chkOffline.Text = Translate.Fmt("lbl_off");
+        chkDownload.Text = Translate.Fmt("lbl_dl");
+        chkManual.Text = Translate.Fmt("lbl_man");
+        chkOld.Text = Translate.Fmt("lbl_old");
+        chkMsUpd.Text = Translate.Fmt("lbl_ms");
 
-        gbStartup.Text = Translate.fmt("lbl_start");
-        chkAutoRun.Text = Translate.fmt("lbl_auto");
+        gbStartup.Text = Translate.Fmt("lbl_start");
+        chkAutoRun.Text = Translate.Fmt("lbl_auto");
         dlAutoCheck.Items.Clear();
-        dlAutoCheck.Items.Add(Translate.fmt("lbl_ac_no"));
-        dlAutoCheck.Items.Add(Translate.fmt("lbl_ac_day"));
-        dlAutoCheck.Items.Add(Translate.fmt("lbl_ac_week"));
-        dlAutoCheck.Items.Add(Translate.fmt("lbl_ac_month"));
-        chkNoUAC.Text = Translate.fmt("lbl_uac");
+        dlAutoCheck.Items.Add(Translate.Fmt("lbl_ac_no"));
+        dlAutoCheck.Items.Add(Translate.Fmt("lbl_ac_day"));
+        dlAutoCheck.Items.Add(Translate.Fmt("lbl_ac_week"));
+        dlAutoCheck.Items.Add(Translate.Fmt("lbl_ac_month"));
+        chkNoUAC.Text = Translate.Fmt("lbl_uac");
 
 
-        tabAU.Text = Translate.fmt("lbl_au");
+        tabAU.Text = Translate.Fmt("lbl_au");
 
-        chkBlockMS.Text = Translate.fmt("lbl_block_ms");
-        radDisable.Text = Translate.fmt("lbl_au_off");
-        chkDisableAU.Text = Translate.fmt("lbl_au_dissable");
-        radNotify.Text = Translate.fmt("lbl_au_notify");
-        radDownload.Text = Translate.fmt("lbl_au_dl");
-        radSchedule.Text = Translate.fmt("lbl_au_time");
-        radDefault.Text = Translate.fmt("lbl_au_def");
-        chkHideWU.Text = Translate.fmt("lbl_hide");
-        chkStore.Text = Translate.fmt("lbl_store");
-        chkDrivers.Text = Translate.fmt("lbl_drv");
+        chkBlockMS.Text = Translate.Fmt("lbl_block_ms");
+        radDisable.Text = Translate.Fmt("lbl_au_off");
+        chkDisableAU.Text = Translate.Fmt("lbl_au_dissable");
+        radNotify.Text = Translate.Fmt("lbl_au_notify");
+        radDownload.Text = Translate.Fmt("lbl_au_dl");
+        radSchedule.Text = Translate.Fmt("lbl_au_time");
+        radDefault.Text = Translate.Fmt("lbl_au_def");
+        chkHideWU.Text = Translate.Fmt("lbl_hide");
+        chkStore.Text = Translate.Fmt("lbl_store");
+        chkDrivers.Text = Translate.Fmt("lbl_drv");
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
