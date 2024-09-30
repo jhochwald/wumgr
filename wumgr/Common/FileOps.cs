@@ -1,144 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿#region
+
+using System;
+using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.IO;
 
+#endregion
 
-class FileOps
+internal class FileOps
 {
-    static public string FormatSize(decimal size)
-    {
-        if (size == 0)
-            return "";
-        if (size >= 1024 * 1024 * 1024)
-            return (size / (1024 * 1024 * 1024)).ToString("F") + " GB";
-        if (size >= 1024 * 1024)
-            return (size / (1024 * 1024)).ToString("F") + " MB";
-        if (size >= 1024)
-            return (size / (1024)).ToString("F") + " KB";
-        return ((Int64)size).ToString() + " B";
-    }
-
-    static public bool MoveFile(string from, string to, bool Overwrite = false)
-    {
-        try
-        {
-            if (File.Exists(to))
-            {
-                if (!Overwrite)
-                    return false;
-                File.Delete(to);
-            }
-
-            File.Move(from, to);
-
-            if (File.Exists(from))
-                return false;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("The process failed: {0}", e.ToString());
-            return false;
-        }
-        return true;
-    }
-
-    static public bool DeleteFile(string path)
-    {
-        try
-        {
-            File.Delete(path);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    static public int TestFileAdminSec(String filePath)
-    {
-        //get file info
-        FileInfo fi = new FileInfo(filePath);
-        if (!fi.Exists)
-            return 2;
-            
-        //get security access
-        FileSecurity fs = fi.GetAccessControl();
-
-        //get any special user access
-        AuthorizationRuleCollection rules = fs.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier)); // get as SID not string
-
-
-        //remove any special access
-        foreach (FileSystemAccessRule rule in rules)
-        {
-            if (rule.AccessControlType != AccessControlType.Allow)
-                continue;
-            if (rule.IdentityReference.Value.Equals(SID_Admins) || rule.IdentityReference.Value.Equals(SID_System))
-                continue;
-            if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.Delete)) != 0)
-                return 0;
-        }
-        return 1;
-    }
-
-    static public void SetFileAdminSec(String filePath)
-    {
-        //get file info
-        FileInfo fi = new FileInfo(filePath);
-        if(!fi.Exists){
-            FileStream f_out = fi.OpenWrite();
-            f_out.Close();
-        }
-
-        //get security access
-        FileSecurity fs = fi.GetAccessControl();
-
-        //remove any inherited access
-        fs.SetAccessRuleProtection(true, false);
-
-        //get any special user access
-        AuthorizationRuleCollection rules = fs.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)); // show as names
-
-        //remove any special access
-        foreach (FileSystemAccessRule rule in rules)
-            fs.RemoveAccessRule(rule);
-
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Admins), FileSystemRights.FullControl, AccessControlType.Allow));
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_System), FileSystemRights.FullControl, AccessControlType.Allow));
-        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Users), FileSystemRights.Read, AccessControlType.Allow));
-
-        //add current user with full control.
-        //fs.AddAccessRule(new FileSystemAccessRule(domainName + "\\" + userName, FileSystemRights.FullControl, AccessControlType.Allow));
-
-        //add all other users delete only permissions.
-        //SecurityIdentifier sid = new SecurityIdentifier("S-1-5-11"); // Authenticated Users
-        //fs.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.Delete, AccessControlType.Allow));
-
-        //flush security access.
-        File.SetAccessControl(filePath, fs);
-    }
-
-    static public bool TestWrite(string filePath)
-    {
-        FileInfo fi = new FileInfo(filePath);
-        try
-        {
-            FileStream f_out = fi.OpenWrite();
-            f_out.Close();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     public static string SID_null = "S-1-0-0"; //	Null SID
     public static string SID_Worls = "S-1-1-0"; //	World
     public static string SID_Local = "S-1-2-0"; //	Local
@@ -156,7 +26,9 @@ class FileOps
     public static string SID_LocalAccAdmin = "S-1-5-114"; //	Local account and member of Administrators group
     public static string SID_Net = "S-1-5-2"; //	Network
     public static string SID_Natch = "S-1-5-3"; //	Batch
+
     public static string SID_Interactive = "S-1-5-4"; //	Interactive
+
     //public static string SID_ = "S-1-5-5- *X*- *Y* Logon Session
     public static string SID_Service = "S-1-5-6"; //	Service
     public static string SID_AnonLogin = "S-1-5-7"; //	Anonymous Logon
@@ -200,6 +72,142 @@ class FileOps
     public static string SID_PPLevel = "S-1-16-20480"; //	Protected Process Mandatory Level
     public static string SID_SPLevel = "S-1-16-28672"; //	Secure Process Mandatory Level
 
+    public static string FormatSize(decimal size)
+    {
+        if (size == 0)
+            return "";
+        if (size >= 1024 * 1024 * 1024)
+            return (size / (1024 * 1024 * 1024)).ToString("F") + " GB";
+        if (size >= 1024 * 1024)
+            return (size / (1024 * 1024)).ToString("F") + " MB";
+        if (size >= 1024)
+            return (size / 1024).ToString("F") + " KB";
+        return (long)size + " B";
+    }
+
+    public static bool MoveFile(string from, string to, bool Overwrite = false)
+    {
+        try
+        {
+            if (File.Exists(to))
+            {
+                if (!Overwrite)
+                    return false;
+                File.Delete(to);
+            }
+
+            File.Move(from, to);
+
+            if (File.Exists(from))
+                return false;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("The process failed: {0}", e);
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool DeleteFile(string path)
+    {
+        try
+        {
+            File.Delete(path);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static int TestFileAdminSec(string filePath)
+    {
+        //get file info
+        FileInfo fi = new(filePath);
+        if (!fi.Exists)
+            return 2;
+
+        //get security access
+        FileSecurity fs = fi.GetAccessControl();
+
+        //get any special user access
+        AuthorizationRuleCollection
+            rules = fs.GetAccessRules(true, true, typeof(SecurityIdentifier)); // get as SID not string
+
+
+        //remove any special access
+        foreach (FileSystemAccessRule rule in rules)
+        {
+            if (rule.AccessControlType != AccessControlType.Allow)
+                continue;
+            if (rule.IdentityReference.Value.Equals(SID_Admins) || rule.IdentityReference.Value.Equals(SID_System))
+                continue;
+            if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.Delete)) != 0)
+                return 0;
+        }
+
+        return 1;
+    }
+
+    public static void SetFileAdminSec(string filePath)
+    {
+        //get file info
+        FileInfo fi = new(filePath);
+        if (!fi.Exists)
+        {
+            FileStream f_out = fi.OpenWrite();
+            f_out.Close();
+        }
+
+        //get security access
+        FileSecurity fs = fi.GetAccessControl();
+
+        //remove any inherited access
+        fs.SetAccessRuleProtection(true, false);
+
+        //get any special user access
+        AuthorizationRuleCollection rules = fs.GetAccessRules(true, true, typeof(NTAccount)); // show as names
+
+        //remove any special access
+        foreach (FileSystemAccessRule rule in rules)
+            fs.RemoveAccessRule(rule);
+
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Admins), FileSystemRights.FullControl,
+            AccessControlType.Allow));
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_System), FileSystemRights.FullControl,
+            AccessControlType.Allow));
+        fs.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(SID_Users), FileSystemRights.Read,
+            AccessControlType.Allow));
+
+        //add current user with full control.
+        //fs.AddAccessRule(new FileSystemAccessRule(domainName + "\\" + userName, FileSystemRights.FullControl, AccessControlType.Allow));
+
+        //add all other users delete only permissions.
+        //SecurityIdentifier sid = new SecurityIdentifier("S-1-5-11"); // Authenticated Users
+        //fs.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.Delete, AccessControlType.Allow));
+
+        //flush security access.
+        File.SetAccessControl(filePath, fs);
+    }
+
+    public static bool TestWrite(string filePath)
+    {
+        FileInfo fi = new(filePath);
+        try
+        {
+            FileStream f_out = fi.OpenWrite();
+            f_out.Close();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     internal static bool TakeOwn(string path)
     {
         bool ret = true;
@@ -211,7 +219,7 @@ class FileOps
 
 
             FileSecurity ac = File.GetAccessControl(path);
-            ac.SetOwner(new SecurityIdentifier(FileOps.SID_Admins));
+            ac.SetOwner(new SecurityIdentifier(SID_Admins));
             File.SetAccessControl(path, ac);
         }
         catch (PrivilegeNotHeldException err)
@@ -225,6 +233,7 @@ class FileOps
             //TokenManipulator.RemovePrivilege("SeBackupPrivilege");
             TokenManipulator.RemovePrivilege("SeTakeOwnershipPrivilege");
         }
+
         return ret;
     }
 }

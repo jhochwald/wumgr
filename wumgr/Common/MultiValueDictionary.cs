@@ -1,22 +1,21 @@
-﻿using System;
+﻿#region
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
+#endregion
 
 public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 {
-    public MultiValueDictionary() : base()
-    {
-    }
-    
     public void Add(TKey key, TValue value)
     {
         List<TValue> container = null;
-        if (!this.TryGetValue(key, out container))
+        if (!TryGetValue(key, out container))
         {
             container = new List<TValue>();
             base.Add(key, container);
         }
+
         container.Add(value);
     }
 
@@ -24,33 +23,24 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
     {
         bool toReturn = false;
         List<TValue> values = null;
-        if (this.TryGetValue(key, out values))
-        {
-            toReturn = values.Contains(value);
-        }
+        if (TryGetValue(key, out values)) toReturn = values.Contains(value);
         return toReturn;
     }
-    
+
     public void Remove(TKey key, TValue value)
     {
         List<TValue> container = null;
-        if (this.TryGetValue(key, out container))
+        if (TryGetValue(key, out container))
         {
             container.Remove(value);
-            if (container.Count <= 0)
-            {
-                this.Remove(key);
-            }
+            if (container.Count <= 0) Remove(key);
         }
     }
-    
+
     public List<TValue> GetValues(TKey key, bool returnEmptySet = true)
     {
         List<TValue> toReturn = null;
-        if (!base.TryGetValue(key, out toReturn) && returnEmptySet)
-        {
-            toReturn = new List<TValue>();
-        }
+        if (!TryGetValue(key, out toReturn) && returnEmptySet) toReturn = new List<TValue>();
         return toReturn;
     }
 
@@ -71,6 +61,7 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
                 return pair.Value[index - Count];
             Count += pair.Value.Count;
         }
+
         throw new IndexOutOfRangeException();
     }
 
@@ -83,6 +74,7 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
                 return pair.Key;
             Count += pair.Value.Count;
         }
+
         throw new IndexOutOfRangeException();
     }
 }

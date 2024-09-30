@@ -1,41 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿#region
+
+using System;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 
+#endregion
 
-class HttpTask
+internal class HttpTask
 {
     //const int DefaultTimeout = 2 * 60 * 1000; // 2 minutes timeout
-    const int BUFFER_SIZE = 1024;
+    private const int BUFFER_SIZE = 1024;
     private byte[] BufferRead;
+    private bool Canceled;
+    private DateTime lastTime;
+    private readonly Dispatcher mDispatcher;
+    private int mLength = -1;
+    private int mOffset = -1;
+
+    private int mOldPercent = -1;
+    private readonly string mUrl;
     private HttpWebRequest request;
     private HttpWebResponse response;
     private Stream streamResponse;
     private Stream streamWriter;
-    private Dispatcher mDispatcher;
-    private string mUrl;
-    private string mDlPath;
-    private string mDlName;
-    private int mLength = -1;
-    private int mOffset = -1;
-    private bool Canceled = false;
-    private DateTime lastTime;
-
-    public string DlPath { get { return mDlPath; } }
-    public string DlName { get { return mDlName; } }
 
     public HttpTask(string Url, string DlPath, string DlName = null, bool Update = false)
     {
         mUrl = Url;
-        mDlPath = DlPath;
-        mDlName = DlName;
+        this.DlPath = DlPath;
+        this.DlName = DlName;
 
         BufferRead = null;
         request = null;
@@ -44,6 +38,10 @@ class HttpTask
         streamWriter = null;
         mDispatcher = Dispatcher.CurrentDispatcher;
     }
+
+    public string DlPath { get; }
+
+    public string DlName { get; private set; }
 
     // Abort the request if the timer fires.
     /*private static void TimeoutCallback(object state, bool timedOut)
@@ -86,7 +84,7 @@ class HttpTask
             mOffset = 0;
 
             // Start the asynchronous request.
-            IAsyncResult result = (IAsyncResult)request.BeginGetResponse(new AsyncCallback(RespCallback), this);
+            IAsyncResult result = request.BeginGetResponse(RespCallback, this);
 
             // this line implements the timeout, if there is a timeout, the callback fires and the request becomes aborted
             //ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, new WaitOrTimerCallback(TimeoutCallback), request, DefaultTimeout, true);          
@@ -97,6 +95,7 @@ class HttpTask
             Console.WriteLine("\nMain Exception raised!");
             Console.WriteLine("\nMessage:{0}", e.Message);
         }
+
         return false;
     }
 
@@ -117,8 +116,8 @@ class HttpTask
                 streamResponse.Close();
             if (streamWriter != null)
                 streamWriter.Close();
-
         }
+
         response = null;
         request = null;
         streamResponse = null;
@@ -128,38 +127,49 @@ class HttpTask
         {
             try
             {
-                if (File.Exists(mDlPath + @"\" + mDlName))
-                    File.Delete(mDlPath + @"\" + mDlName);
-                File.Move(mDlPath + @"\" + mDlName + ".tmp", mDlPath + @"\" + mDlName);
+                if (File.Exists(DlPath + @"\" + DlName))
+                    File.Delete(DlPath + @"\" + DlName);
+                File.Move(DlPath + @"\" + DlName + ".tmp", DlPath + @"\" + DlName);
             }
             catch
             {
-                AppLog.Line("Failed to rename download {0}", mDlPath + @"\" + mDlName + ".tmp");
-                mDlName += ".tmp";
+                AppLog.Line("Failed to rename download {0}", DlPath + @"\" + DlName + ".tmp");
+                DlName += ".tmp";
             }
 
-            try { File.SetLastWriteTime(mDlPath + @"\" + mDlName, lastTime); } catch { } // set last mod time
+            try
+            {
+                File.SetLastWriteTime(DlPath + @"\" + DlName, lastTime);
+            }
+            catch
+            {
+            } // set last mod time
         }
         else if (Success == 2)
         {
-            AppLog.Line("File already downloaded {0}", mDlPath + @"\" + mDlName);
+            AppLog.Line("File already downloaded {0}", DlPath + @"\" + DlName);
         }
         else
         {
-            try { File.Delete(mDlPath + @"\" + mDlName + ".tmp"); } catch { } // delete partial file
-            AppLog.Line("Failed to download file {0}", mDlPath + @"\" + mDlName);
+            try
+            {
+                File.Delete(DlPath + @"\" + DlName + ".tmp");
+            }
+            catch
+            {
+            } // delete partial file
+
+            AppLog.Line("Failed to download file {0}", DlPath + @"\" + DlName);
         }
 
         Finished?.Invoke(this, new FinishedEventArgs(Success > 0 ? 0 : Canceled ? -1 : ErrCode, Error));
     }
 
-    static public string GetNextTempFile(string path, string baseName)
+    public static string GetNextTempFile(string path, string baseName)
     {
         for (int i = 0; i < 10000; i++)
-        {
             if (!File.Exists(path + @"\" + baseName + "_" + i + ".tmp"))
                 return baseName + "_" + i;
-        }
         return baseName;
     }
 
@@ -203,10 +213,10 @@ class HttpTask
 
             //Console.WriteLine(task.lastTime);
 
-            if (task.mDlName == null)
-                task.mDlName = fileName;
+            if (task.DlName == null)
+                task.DlName = fileName;
 
-            FileInfo testInfo = new FileInfo(task.mDlPath + @"\" + task.mDlName);
+            FileInfo testInfo = new(task.DlPath + @"\" + task.DlName);
             if (testInfo.Exists && testInfo.LastWriteTime == task.lastTime && testInfo.Length == task.mLength)
             {
                 task.request.Abort();
@@ -215,12 +225,12 @@ class HttpTask
             else
             {
                 // prepare download filename
-                if (!Directory.Exists(task.mDlPath))
-                    Directory.CreateDirectory(task.mDlPath);
-                if (task.mDlName.Length == 0 || task.mDlName[0] == '?')
-                    task.mDlName = GetNextTempFile(task.mDlPath, "Download");
+                if (!Directory.Exists(task.DlPath))
+                    Directory.CreateDirectory(task.DlPath);
+                if (task.DlName.Length == 0 || task.DlName[0] == '?')
+                    task.DlName = GetNextTempFile(task.DlPath, "Download");
 
-                FileInfo info = new FileInfo(task.mDlPath + @"\" + task.mDlName + ".tmp");
+                FileInfo info = new(task.DlPath + @"\" + task.DlName + ".tmp");
                 if (info.Exists)
                     info.Delete();
 
@@ -230,7 +240,7 @@ class HttpTask
                 task.streamWriter = info.OpenWrite();
 
                 // Begin the Reading of the contents of the HTML page and print it to the console.
-                task.streamResponse.BeginRead(task.BufferRead, 0, BUFFER_SIZE, new AsyncCallback(ReadCallBack), task);
+                task.streamResponse.BeginRead(task.BufferRead, 0, BUFFER_SIZE, ReadCallBack, task);
                 return;
             }
         }
@@ -238,17 +248,17 @@ class HttpTask
         {
             if (e.Response != null)
             {
-                string fileName = Path.GetFileName(e.Response.ResponseUri.AbsolutePath.ToString());
+                string fileName = Path.GetFileName(e.Response.ResponseUri.AbsolutePath);
 
-                if (task.mDlName == null)
-                    task.mDlName = fileName;
+                if (task.DlName == null)
+                    task.DlName = fileName;
 
-                FileInfo testInfo = new FileInfo(task.mDlPath + @"\" + task.mDlName);
+                FileInfo testInfo = new(task.DlPath + @"\" + task.DlName);
                 if (testInfo.Exists)
                     Success = 2;
             }
 
-            if(Success == 0)
+            if (Success == 0)
             {
                 ErrCode = -2;
                 Error = e;
@@ -264,12 +274,9 @@ class HttpTask
             Console.WriteLine("\nRespCallback Exception raised!");
             Console.WriteLine("\nMessage:{0}", e.Message);
         }
-        task.mDispatcher.Invoke(new Action(() => {
-            task.Finish(Success, ErrCode, Error);
-        }));
-    }
 
-    private int mOldPercent = -1;
+        task.mDispatcher.Invoke(() => { task.Finish(Success, ErrCode, Error); });
+    }
 
     private static void ReadCallBack(IAsyncResult asyncResult)
     {
@@ -286,27 +293,22 @@ class HttpTask
                 task.streamWriter.Write(task.BufferRead, 0, read);
                 task.mOffset += read;
 
-                int Percent = task.mLength > 0 ? (int)((Int64)100 * task.mOffset / task.mLength) : -1;
+                int Percent = task.mLength > 0 ? (int)((long)100 * task.mOffset / task.mLength) : -1;
                 if (Percent != task.mOldPercent)
                 {
                     task.mOldPercent = Percent;
-                    task.mDispatcher.Invoke(new Action(() => {
-                        task.Progress?.Invoke(task, new ProgressEventArgs(Percent));
-                    }));
+                    task.mDispatcher.Invoke(() => { task.Progress?.Invoke(task, new ProgressEventArgs(Percent)); });
                 }
 
                 // setup next read
-                task.streamResponse.BeginRead(task.BufferRead, 0, BUFFER_SIZE, new AsyncCallback(ReadCallBack), task);
+                task.streamResponse.BeginRead(task.BufferRead, 0, BUFFER_SIZE, ReadCallBack, task);
                 return;
             }
-            else
-            {
-                // this is done on finisch
-                //task.streamWriter.Close();
-                //task.streamResponse.Close();
-                Success = 1;
-            }
 
+            // this is done on finisch
+            //task.streamWriter.Close();
+            //task.streamResponse.Close();
+            Success = 1;
         }
         catch (Exception e)
         {
@@ -315,44 +317,47 @@ class HttpTask
             Console.WriteLine("\nReadCallBack Exception raised!");
             Console.WriteLine("\nMessage:{0}", e.Message);
         }
-        task.mDispatcher.Invoke(new Action(() => {
-            task.Finish(Success, ErrCode, Error);
-        }));
+
+        task.mDispatcher.Invoke(() => { task.Finish(Success, ErrCode, Error); });
     }
+
+    public event EventHandler<FinishedEventArgs> Finished;
+    public event EventHandler<ProgressEventArgs> Progress;
 
     public class FinishedEventArgs : EventArgs
     {
+        public int ErrCode;
+        public Exception Error;
+
         public FinishedEventArgs(int ErrCode = 0, Exception Error = null)
         {
             this.ErrCode = ErrCode;
             this.Error = Error;
         }
+
+        public bool Success => ErrCode == 0;
+        public bool Cancelled => ErrCode == -1;
+
         public string GetError()
         {
             if (Error != null)
                 return Error.ToString();
-            switch(ErrCode)
+            switch (ErrCode)
             {
                 case 0: return "Ok";
                 case -1: return "Canceled";
                 default: return ErrCode.ToString();
             }
         }
-        public bool Success { get { return ErrCode == 0; } }
-        public bool Cancelled { get { return ErrCode == -1; } }
-
-        public int ErrCode = 0;
-        public Exception Error = null;
     }
-    public event EventHandler<FinishedEventArgs> Finished;
 
     public class ProgressEventArgs : EventArgs
     {
+        public int Percent;
+
         public ProgressEventArgs(int Percent)
         {
             this.Percent = Percent;
         }
-        public int Percent = 0;
     }
-    public event EventHandler<ProgressEventArgs> Progress;
 }

@@ -1,27 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
+﻿#region
+
+using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
+#endregion
 
-static class WinConsole
+internal static class WinConsole
 {
-    static public bool Initialize(bool alwaysCreateNewConsole = true)
+    public static bool Initialize(bool alwaysCreateNewConsole = true)
     {
         if (AttachConsole(ATTACH_PARRENT) != 0)
             return true;
         if (!alwaysCreateNewConsole)
             return false;
-        if(AllocConsole() != 0)
+        if (AllocConsole() != 0)
         {
             InitializeOutStream();
             InitializeInStream();
             return true;
         }
+
         return false;
     }
 
@@ -39,24 +39,26 @@ static class WinConsole
     private static void InitializeInStream()
     {
         var fs = CreateFileStream("CONIN$", GENERIC_READ, FILE_SHARE_READ, FileAccess.Read);
-        if (fs != null)
-        {
-            Console.SetIn(new StreamReader(fs));
-        }
+        if (fs != null) Console.SetIn(new StreamReader(fs));
     }
 
-    private static FileStream CreateFileStream(string name, uint win32DesiredAccess, uint win32ShareMode, FileAccess dotNetFileAccess)
+    private static FileStream CreateFileStream(string name, uint win32DesiredAccess, uint win32ShareMode,
+        FileAccess dotNetFileAccess)
     {
-        var file = new SafeFileHandle(CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, IntPtr.Zero), true);
+        var file = new SafeFileHandle(
+            CreateFileW(name, win32DesiredAccess, win32ShareMode, IntPtr.Zero, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                IntPtr.Zero), true);
         if (!file.IsInvalid)
         {
             var fs = new FileStream(file, dotNetFileAccess);
             return fs;
         }
+
         return null;
     }
 
     #region Win API Functions and Constants
+
     [DllImport("kernel32.dll",
         EntryPoint = "AllocConsole",
         SetLastError = true,
@@ -69,7 +71,7 @@ static class WinConsole
         SetLastError = true,
         CharSet = CharSet.Auto,
         CallingConvention = CallingConvention.StdCall)]
-    private static extern UInt32 AttachConsole(UInt32 dwProcessId);
+    private static extern uint AttachConsole(uint dwProcessId);
 
     [DllImport("kernel32.dll",
         EntryPoint = "CreateFileW",
@@ -77,24 +79,24 @@ static class WinConsole
         CharSet = CharSet.Auto,
         CallingConvention = CallingConvention.StdCall)]
     private static extern IntPtr CreateFileW(
-            string lpFileName,
-            UInt32 dwDesiredAccess,
-            UInt32 dwShareMode,
-            IntPtr lpSecurityAttributes,
-            UInt32 dwCreationDisposition,
-            UInt32 dwFlagsAndAttributes,
-            IntPtr hTemplateFile
-        );
+        string lpFileName,
+        uint dwDesiredAccess,
+        uint dwShareMode,
+        IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition,
+        uint dwFlagsAndAttributes,
+        IntPtr hTemplateFile
+    );
 
-    private const UInt32 GENERIC_WRITE = 0x40000000;
-    private const UInt32 GENERIC_READ = 0x80000000;
-    private const UInt32 FILE_SHARE_READ = 0x00000001;
-    private const UInt32 FILE_SHARE_WRITE = 0x00000002;
-    private const UInt32 OPEN_EXISTING = 0x00000003;
-    private const UInt32 FILE_ATTRIBUTE_NORMAL = 0x80;
-    private const UInt32 ERROR_ACCESS_DENIED = 5;
+    private const uint GENERIC_WRITE = 0x40000000;
+    private const uint GENERIC_READ = 0x80000000;
+    private const uint FILE_SHARE_READ = 0x00000001;
+    private const uint FILE_SHARE_WRITE = 0x00000002;
+    private const uint OPEN_EXISTING = 0x00000003;
+    private const uint FILE_ATTRIBUTE_NORMAL = 0x80;
+    private const uint ERROR_ACCESS_DENIED = 5;
 
-    private const UInt32 ATTACH_PARRENT = 0xFFFFFFFF;
+    private const uint ATTACH_PARRENT = 0xFFFFFFFF;
 
     #endregion
 }

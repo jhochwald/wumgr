@@ -1,38 +1,12 @@
-﻿using System;
+﻿#region
+
+using System;
 using System.Runtime.InteropServices;
 
+#endregion
 
 public class TokenManipulator
 {
-
-
-    [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
-    internal static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall,
-    ref TokPriv1Luid newst, int len, IntPtr prev, IntPtr relen);
-
-
-    [DllImport("kernel32.dll", ExactSpelling = true)]
-    internal static extern IntPtr GetCurrentProcess();
-
-
-    [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
-    internal static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr
-    phtok);
-
-
-    [DllImport("advapi32.dll", SetLastError = true)]
-    internal static extern bool LookupPrivilegeValue(string host, string name,
-    ref long pluid);
-
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct TokPriv1Luid
-    {
-        public int Count;
-        public long Luid;
-        public int Attr;
-    }
-
     internal const int SE_PRIVILEGE_DISABLED = 0x00000000;
     internal const int SE_PRIVILEGE_ENABLED = 0x00000002;
     internal const int TOKEN_QUERY = 0x00000008;
@@ -74,6 +48,25 @@ public class TokenManipulator
     public const string SE_UNDOCK_NAME = "SeUndockPrivilege";
     public const string SE_UNSOLICITED_INPUT_NAME = "SeUnsolicitedInputPrivilege";
 
+
+    [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+    internal static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall,
+        ref TokPriv1Luid newst, int len, IntPtr prev, IntPtr relen);
+
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    internal static extern IntPtr GetCurrentProcess();
+
+
+    [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+    internal static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr
+        phtok);
+
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    internal static extern bool LookupPrivilegeValue(string host, string name,
+        ref long pluid);
+
     public static bool AddPrivilege(string privilege)
     {
         try
@@ -94,8 +87,8 @@ public class TokenManipulator
         {
             throw ex;
         }
-
     }
+
     public static bool RemovePrivilege(string privilege)
     {
         try
@@ -116,6 +109,14 @@ public class TokenManipulator
         {
             throw ex;
         }
+    }
 
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct TokPriv1Luid
+    {
+        public int Count;
+        public long Luid;
+        public int Attr;
     }
 }
