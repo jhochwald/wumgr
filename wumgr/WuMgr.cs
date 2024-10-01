@@ -127,7 +127,7 @@ public partial class WuMgr : Form
         chkBlockMS.CheckState = (CheckState)Gpo.GetBlockMs();
 
         int day, time;
-        switch (Gpo.GetAU(out day, out time))
+        switch (Gpo.GetAu(out day, out time))
         {
             case Gpo.AuOptions.Default:
                 radDefault.Checked = true;
@@ -386,7 +386,7 @@ public partial class WuMgr : Form
                 }
         }
 
-        if ((doUpdte || (updateNow && !ResultShown)) && agent.IsActive())
+        if ((doUpdte || updateNow && !ResultShown) && agent.IsActive())
         {
             doUpdte = false;
             if (chkOffline.Checked)

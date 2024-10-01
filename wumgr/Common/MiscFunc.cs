@@ -108,10 +108,9 @@ internal class MiscFunc
 
         int length = 0;
         StringBuilder sb = new(0);
-        int result = GetCurrentPackageFullName(ref length, sb);
 
         sb = new StringBuilder(length);
-        result = GetCurrentPackageFullName(ref length, sb);
+        int result = GetCurrentPackageFullName(ref length, sb);
 
         return result != MF_APPMODEL_ERROR_NO_PACKAGE;
     }

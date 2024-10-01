@@ -70,10 +70,19 @@ internal class UpdateInstaller
         if (!_canceled && _mUpdates.Count > _mCurrentTask)
         {
             int percent = 0; // Note: there does not seam to be an easy way to get this value
-            Progress?.Invoke(this,
-                new WuAgent.ProgressArgs(_mUpdates.Count,
-                    _mUpdates.Count == 0 ? 0 : (100 * _mCurrentTask + percent) / _mUpdates.Count, _mCurrentTask + 1,
-                    percent, _mUpdates[_mCurrentTask].Title));
+            if (_mUpdates is { Count: > 0 })
+                Progress?.Invoke(
+                    this,
+                    new WuAgent.ProgressArgs(
+                        _mUpdates.Count,
+                        (100 * _mCurrentTask + percent) / _mUpdates.Count,
+                        _mCurrentTask + 1,
+                        percent,
+                        _mUpdates[_mCurrentTask].Title
+                    )
+                );
+            else
+                Progress?.Invoke(this, new WuAgent.ProgressArgs(0, 0, 0, percent, string.Empty));
 
             if (_doInstall)
             {
@@ -93,11 +102,12 @@ internal class UpdateInstaller
             return;
         }
 
-        FinishedEventArgs args = new(_errorCount, _rebootRequired)
-        {
-            //args.AllFiles = mAllFiles;
-            Updates = _mUpdates
-        };
+        FinishedEventArgs args =
+            new(_errorCount, _rebootRequired)
+            {
+                //args.AllFiles = mAllFiles;
+                Updates = _mUpdates
+            };
         _mAllFiles = null;
         _mUpdates = null;
         Finished?.Invoke(this, args);
@@ -145,19 +155,21 @@ internal class UpdateInstaller
                         ZipFile.ExtractToDirectory(file, path);
 
                     string supportedExtensions = "*.msu,*.msi,*.cab,*.exe";
-                    IEnumerable<string> foundFiles = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+                    IEnumerable<string> foundFiles = Directory
+                        .GetFiles(path, "*.*", SearchOption.AllDirectories)
                         .Where(s => supportedExtensions.Contains(Path.GetExtension(s).ToLower()));
-                    if (!foundFiles.Any())
+                    IEnumerable<string> enumerable = foundFiles as string[] ?? foundFiles.ToArray();
+                    if (!enumerable.Any())
                         throw new FileNotFoundException("Expected file not found in zip");
 
-                    file = foundFiles.First();
+                    file = enumerable.First();
                     ext = Path.GetExtension(file);
                 }
 
                 if (_canceled)
                     break;
 
-                int exitCode = 0;
+                int exitCode;
 
                 if (ext.Equals(".exe", StringComparison.CurrentCultureIgnoreCase))
                     exitCode = InstallExe(file);
@@ -192,46 +204,50 @@ internal class UpdateInstaller
             }
         }
 
-        _mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
+        _mDispatcher.BeginInvoke(
+            new Action(() =>
+            {
+                OnFinished(ok, reboot);
+            })
+        );
     }
 
     private int InstallExe(string fileName)
     {
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = fileName
-        };
+        ProcessStartInfo startInfo = new() { FileName = fileName };
 
         // ToDo: load from file or make it less complex
         string name = Path.GetFileNameWithoutExtension(fileName);
-        if (name.IndexOf("ndp", StringComparison.CurrentCultureIgnoreCase) == 0 ||
-            name.IndexOf("OFV", StringComparison.CurrentCultureIgnoreCase) == 0 ||
-            name.IndexOf("2553065", StringComparison.CurrentCultureIgnoreCase) == 0)
-            startInfo.Arguments = "/q /norestart";
-        else
-            startInfo.Arguments = "/q /z";
+        string[] args = ["ndp", "OFV", "2553065"];
+        startInfo.Arguments = args.Any(a =>
+            name.StartsWith(a, StringComparison.CurrentCultureIgnoreCase)
+        )
+            ? "/q /norestart"
+            : "/q /z";
 
         return ExecTask(startInfo);
     }
 
     private int InstallMsi(string fileName)
     {
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = @"%SystemRoot%\System32\msiexec.exe",
-            Arguments = "/i \"" + fileName + "\" /qn /norestart"
-        };
+        ProcessStartInfo startInfo =
+            new()
+            {
+                FileName = @"%SystemRoot%\System32\msiexec.exe",
+                Arguments = "/i \"" + fileName + "\" /qn /norestart"
+            };
 
         return ExecTask(startInfo);
     }
 
     private int InstallMsu(string fileName)
     {
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = @"%SystemRoot%\System32\wusa.exe",
-            Arguments = "\"" + fileName + "\" /quiet /norestart"
-        };
+        ProcessStartInfo startInfo =
+            new()
+            {
+                FileName = @"%SystemRoot%\System32\wusa.exe",
+                Arguments = "\"" + fileName + "\" /quiet /norestart"
+            };
 
         return ExecTask(startInfo);
     }
@@ -241,8 +257,11 @@ internal class UpdateInstaller
         try
         {
             Process proc = new();
-            proc.StartInfo.FileName = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\Dism.exe");
-            proc.StartInfo.Arguments = "/Online /Get-PackageInfo /PackagePath:\"" + fileName + "\" /English";
+            proc.StartInfo.FileName = Environment.ExpandEnvironmentVariables(
+                @"%SystemRoot%\System32\Dism.exe"
+            );
+            proc.StartInfo.Arguments =
+                "/Online /Get-PackageInfo /PackagePath:\"" + fileName + "\" /English";
             proc.StartInfo.RedirectStandardOutput = true;
             proc.StartInfo.RedirectStandardError = true;
             proc.StartInfo.UseShellExecute = false;
@@ -252,14 +271,20 @@ internal class UpdateInstaller
             proc.WaitForExit();
             while (!proc.StandardOutput.EndOfStream)
             {
-                string[] line = proc.StandardOutput.ReadLine()!.Split(':');
-                if (line.Length != 2)
+                string[] line = proc.StandardOutput.ReadLine()?.Split(':');
+                if (line != null && line.Length != 2)
                     continue;
 
-                if (!line[0].Trim().Equals("Applicable", StringComparison.CurrentCultureIgnoreCase))
+                if (
+                    line != null
+                    && !line[0]
+                        .Trim()
+                        .Equals("Applicable", StringComparison.CurrentCultureIgnoreCase)
+                )
                     continue;
 
-                return line[1].Trim().Equals("Yes", StringComparison.CurrentCultureIgnoreCase);
+                return line != null
+                       && line[1].Trim().Equals("Yes", StringComparison.CurrentCultureIgnoreCase);
             }
         }
         catch (Exception e)
@@ -275,11 +300,15 @@ internal class UpdateInstaller
         if (!CheckCab(fileName) || _canceled)
             return 0; // update not aplicable or user canceled
 
-        ProcessStartInfo startInfo = new()
-        {
-            FileName = @"%SystemRoot%\System32\Dism.exe",
-            Arguments = "/Online /Quiet /NoRestart /Add-Package /PackagePath:\"" + fileName + "\" /IgnoreCheck"
-        };
+        ProcessStartInfo startInfo =
+            new()
+            {
+                FileName = @"%SystemRoot%\System32\Dism.exe",
+                Arguments =
+                    "/Online /Quiet /NoRestart /Add-Package /PackagePath:\""
+                    + fileName
+                    + "\" /IgnoreCheck"
+            };
 
         return ExecTask(startInfo);
     }
@@ -316,11 +345,15 @@ internal class UpdateInstaller
 
         try
         {
-            ProcessStartInfo startInfo = new()
-            {
-                FileName = @"%SystemRoot%\System32\wusa.exe",
-                Arguments = "/uninstall /kb:" + kb.Substring(2) + " /norestart" // /quiet 
-            };
+            ProcessStartInfo startInfo =
+                new()
+                {
+                    FileName = @"%SystemRoot%\System32\wusa.exe",
+                    Arguments =
+                        "/uninstall /kb:"
+                        + kb.Substring(2)
+                        + " /norestart" // /quiet
+                };
 
             int exitCode = ExecTask(startInfo);
 
@@ -340,7 +373,12 @@ internal class UpdateInstaller
             Console.WriteLine(@"Error removing update: {0}", e.Message);
         }
 
-        _mDispatcher.BeginInvoke(new Action(() => { OnFinished(ok, reboot); }));
+        _mDispatcher.BeginInvoke(
+            new Action(() =>
+            {
+                OnFinished(ok, reboot);
+            })
+        );
     }
 
     public event EventHandler<FinishedEventArgs> Finished;

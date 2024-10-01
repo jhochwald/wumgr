@@ -170,8 +170,8 @@ Message:{0}", e.Message);
     private static string GetNextTempFile(string path, string baseName)
     {
         for (int i = 0; i < 10000; i++)
-            if (!File.Exists(path + @"\" + baseName + "_" + i + ".tmp"))
-                return baseName + "_" + i;
+            if (!File.Exists(Path.Combine(path, $"{baseName}_{i}.tmp")))
+                return $"{baseName}_{i}";
         return baseName;
     }
 
@@ -249,7 +249,7 @@ Message:{0}", e.Message);
         {
             if (e.Response != null)
             {
-                string fileName = Path.GetFileName(e.Response.ResponseUri.AbsolutePath);
+                string fileName = Path.GetFileName(e.Response.ResponseUri.LocalPath);
 
                 task.DlName ??= fileName;
 
@@ -298,7 +298,7 @@ Message:{0}", e.Message);
                 task._streamWriter.Write(task._bufferRead, 0, read);
                 task._mOffset += read;
 
-                int percent = task._mLength > 0 ? (int)((long)100 * task._mOffset / task._mLength) : -1;
+                int percent = task._mLength > 0 ? (int)(100L * task._mOffset / task._mLength) : -1;
                 if (percent != task._mOldPercent)
                 {
                     task._mOldPercent = percent;

@@ -162,8 +162,7 @@ public static class Translate
     {
         try
         {
-            string str = id;
-            MStrings.TryGetValue(id, out str);
+            MStrings.TryGetValue(id, out string str);
             return string.Format(str!, args);
         }
         catch

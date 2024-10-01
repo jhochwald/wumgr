@@ -87,12 +87,9 @@ internal class WuAgent
     {
         _mInstance = this;
         _mDispatcher = Dispatcher.CurrentDispatcher;
-
         _mUpdateDownloader = new UpdateDownloader();
         _mUpdateDownloader.Finished += DownloadsFinished;
         _mUpdateDownloader.Progress += DownloadProgress;
-
-
         _mUpdateInstaller = new UpdateInstaller();
         _mUpdateInstaller.Finished += InstallFinished;
         _mUpdateInstaller.Progress += InstallProgress;
@@ -100,9 +97,8 @@ internal class WuAgent
         DlPath = Program.WrkPath + @"\Updates";
 
         WindowsUpdateAgentInfo info = new();
-        dynamic currentVersion = info.GetInfo("ApiMajorVersion").ToString().Trim() + "." +
-                                 info.GetInfo("ApiMinorVersion").ToString().Trim() + " (" +
-                                 info.GetInfo("ProductVersionString").ToString().Trim() + ")";
+        string currentVersion =
+            $"{info.GetInfo("ApiMajorVersion").ToString().Trim()}.{info.GetInfo("ApiMinorVersion").ToString().Trim()} ({info.GetInfo("ProductVersionString").ToString().Trim()})";
         AppLog.Line("Windows Update Agent Version: {0}", currentVersion);
 
         _mUpdateSession = new UpdateSession
@@ -150,6 +146,7 @@ internal class WuAgent
         return _mCurOperation != AgentOperation.None;
     }
 
+
     private bool LoadServices(bool cleanUp = false)
     {
         try
@@ -160,21 +157,12 @@ internal class WuAgent
             {
                 if (service.Name == _mMyOfflineSvc)
                 {
-                    if (cleanUp)
-                        try
-                        {
-                            _mUpdateServiceManager.RemoveService(service.ServiceID);
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                        }
-
+                    if (cleanUp) TryRemoveService(service.ServiceID);
                     continue;
                 }
 
-                Console.WriteLine(service.Name + @": " + service.ServiceID);
-                //AppLog.Line(service.Name + ": " + service.ServiceID);
+                Console.WriteLine($@"{service.Name}: {service.ServiceID}");
+                //AppLog.Line($"{service.Name}: {service.ServiceID}");
                 MServiceList.Add(service.Name);
             }
 
@@ -182,11 +170,23 @@ internal class WuAgent
         }
         catch (Exception err)
         {
-            if ((uint)err.HResult != 0x80070422)
-                LogError(err);
+            if ((uint)err.HResult != 0x80070422) LogError(err);
             return false;
         }
     }
+
+    private void TryRemoveService(string serviceId)
+    {
+        try
+        {
+            _mUpdateServiceManager.RemoveService(serviceId);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+    }
+
 
     private void LogError(Exception error)
     {
@@ -256,25 +256,22 @@ internal class WuAgent
             if (_mOfflineService == null)
             {
                 AppLog.Line("Setting up 'Offline Sync Service'");
-
-                // http://go.microsoft.com/fwlink/p/?LinkID=74689
                 _mOfflineService =
                     _mUpdateServiceManager.AddScanPackageService(_mMyOfflineSvc, DlPath + @"\wsusscn2.cab");
             }
 
             _mUpdateSearcher.ServerSelection = ServerSelection.ssOthers;
             _mUpdateSearcher.ServiceID = _mOfflineService.ServiceID;
-            //mUpdateSearcher.Online = false;
         }
         catch (Exception err)
         {
             AppLog.Line(err.Message);
-            RetCodes ret = RetCodes.InternalError;
-            if (err.GetType() == typeof(FileNotFoundException))
-                ret = RetCodes.FileNotFound;
-            if (err.GetType() == typeof(UnauthorizedAccessException))
-                ret = RetCodes.AccessError;
-            return ret;
+            return err switch
+            {
+                FileNotFoundException => RetCodes.FileNotFound,
+                UnauthorizedAccessException => RetCodes.AccessError,
+                _ => RetCodes.InternalError
+            };
         }
 
         return RetCodes.Success;
@@ -289,7 +286,7 @@ internal class WuAgent
     {
         if (_mOfflineService != null)
         {
-            // note: if we keep references to updates reffering to and removed service we may get a crash
+            // note: if we keep references to updates referring to and removed service we may get a crash
             foreach (MsUpdate update in MUpdateHistory)
                 update.Invalidate();
             foreach (MsUpdate update in MPendingUpdates)
@@ -373,10 +370,7 @@ internal class WuAgent
         }
 
         RetCodes ret = SetupOffline();
-        if (ret < 0)
-            return ret;
-
-        return SearchForUpdates();
+        return ret < 0 ? ret : SearchForUpdates();
     }
 
     private RetCodes OnWuError(Exception err)
@@ -423,7 +417,7 @@ internal class WuAgent
             return null;
         try
         {
-            // Note: this is sloooow!
+            // Note: this is slow!
             ISearchResult result = _mUpdateSearcher.Search("UpdateID = '" + uuid + "'");
             if (result.Updates.Count > 0)
                 return result.Updates[0];
@@ -615,27 +609,34 @@ internal class WuAgent
         OnProgress(args.TotalCount, args.TotalPercent, args.CurrentIndex, args.CurrentPercent, args.Info);
     }
 
-    private void InstallFinished(object sender, UpdateInstaller.FinishedEventArgs args) // "manuall" mode
+    private void InstallFinished(object sender, UpdateInstaller.FinishedEventArgs args) // "manual" mode
     {
         if (args.Success)
         {
             AppLog.Line("Updates (Un)Installed successfully");
 
             foreach (MsUpdate update in args.Updates)
-                if (_mCurOperation == AgentOperation.InstallingUpdates)
+                switch (_mCurOperation)
                 {
-                    if (RemoveFrom(MPendingUpdates, update))
+                    case AgentOperation.InstallingUpdates:
                     {
-                        update.Attributes |= (int)MsUpdate.UpdateAttr.Installed;
-                        MInstalledUpdates.Add(update);
+                        if (RemoveFrom(MPendingUpdates, update))
+                        {
+                            update.Attributes |= (int)MsUpdate.UpdateAttr.Installed;
+                            MInstalledUpdates.Add(update);
+                        }
+
+                        break;
                     }
-                }
-                else if (_mCurOperation == AgentOperation.RemovingUpdates)
-                {
-                    if (RemoveFrom(MInstalledUpdates, update))
+                    case AgentOperation.RemovingUpdates:
                     {
-                        update.Attributes &= ~(int)MsUpdate.UpdateAttr.Installed;
-                        MPendingUpdates.Add(update);
+                        if (RemoveFrom(MInstalledUpdates, update))
+                        {
+                            update.Attributes &= ~(int)MsUpdate.UpdateAttr.Installed;
+                            MPendingUpdates.Add(update);
+                        }
+
+                        break;
                     }
                 }
         }
@@ -666,15 +667,11 @@ internal class WuAgent
             return RetCodes.Busy;
 
         _mDownloader ??= _mUpdateSession.CreateUpdateDownloader();
-
         _mDownloader.Updates = new UpdateCollection();
-        foreach (MsUpdate Update in updates)
-        {
-            IUpdate update = Update.GetUpdate();
-            if (update == null)
-                continue;
 
-            if (update.EulaAccepted == false) update.AcceptEula();
+        foreach (IUpdate update in updates.Select(u => u.GetUpdate()).Where(u => u != null))
+        {
+            if (!update.EulaAccepted) update.AcceptEula();
             _mDownloader.Updates.Add(update);
         }
 
@@ -702,7 +699,7 @@ internal class WuAgent
         return RetCodes.InProgress;
     }
 
-    private RetCodes InstallUpdates(List<MsUpdate> Updates)
+    private RetCodes InstallUpdates(List<MsUpdate> updates)
     {
         if (_mCallback != null)
             return RetCodes.Busy;
@@ -710,14 +707,8 @@ internal class WuAgent
         _mInstaller ??= _mUpdateSession.CreateUpdateInstaller();
         _mInstaller.Updates = new UpdateCollection();
 
-        foreach (MsUpdate Update in Updates)
-        {
-            IUpdate update = Update.GetUpdate();
-            if (update == null)
-                continue;
-
+        foreach (IUpdate update in updates.Select(u => u.GetUpdate()).Where(u => u != null))
             _mInstaller.Updates.Add(update);
-        }
 
         if (_mInstaller.Updates.Count == 0)
         {
@@ -733,7 +724,7 @@ internal class WuAgent
         AppLog.Line("Installing Updates... This may take several minutes.");
         try
         {
-            _mInstalationJob = _mInstaller.BeginInstall(_mCallback, _mCallback, Updates);
+            _mInstalationJob = _mInstaller.BeginInstall(_mCallback, _mCallback, updates);
         }
         catch (Exception err)
         {
@@ -983,16 +974,22 @@ internal class WuAgent
         OnUpdatesChanged();
 
         RetCodes ret = RetCodes.Undefined;
-        if (installationResults.ResultCode == OperationResultCode.orcSucceeded ||
-            installationResults.ResultCode == OperationResultCode.orcSucceededWithErrors)
-            ret = RetCodes.Success;
-        else if (installationResults.ResultCode == OperationResultCode.orcAborted)
-            ret = RetCodes.Aborted;
-        else if (installationResults.ResultCode == OperationResultCode.orcFailed)
-            ret = RetCodes.InternalError;
+        switch (installationResults.ResultCode)
+        {
+            case OperationResultCode.orcSucceeded:
+            case OperationResultCode.orcSucceededWithErrors:
+                ret = RetCodes.Success;
+                break;
+            case OperationResultCode.orcAborted:
+                ret = RetCodes.Aborted;
+                break;
+            case OperationResultCode.orcFailed:
+                ret = RetCodes.InternalError;
+                break;
+        }
+
         OnFinished(ret, installationResults.RebootRequired);
     }
-
 
     public void EnableWuAuServ(bool enable = true)
     {
@@ -1072,20 +1069,15 @@ internal class WuAgent
                 continue;
 
             Program.IniWriteValue(update.Kb, "UUID", update.Uuid, iniPath);
-
             Program.IniWriteValue(update.Kb, "Title", update.Title, iniPath);
             Program.IniWriteValue(update.Kb, "Info", update.Description, iniPath);
             Program.IniWriteValue(update.Kb, "Category", update.Category, iniPath);
-
             Program.IniWriteValue(update.Kb, "Date",
                 update.Date.ToString(CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern), iniPath);
             Program.IniWriteValue(update.Kb, "Size", update.Size.ToString(CultureInfo.InvariantCulture), iniPath);
-
             Program.IniWriteValue(update.Kb, "SupportUrl", update.SupportUrl, iniPath);
-
             Program.IniWriteValue(update.Kb, "Downloads", string.Join("|", update.Downloads.Cast<string>().ToArray()),
                 iniPath);
-
             Program.IniWriteValue(update.Kb, "State", ((int)update.State).ToString(), iniPath);
             Program.IniWriteValue(update.Kb, "Attributes", update.Attributes.ToString(), iniPath);
             Program.IniWriteValue(update.Kb, "ResultCode", update.ResultCode.ToString(), iniPath);
@@ -1106,7 +1098,6 @@ internal class WuAgent
                 Kb = kb
             };
             update.Uuid = Program.IniReadValue(update.Kb, "UUID", "", iniPath);
-
             update.Title = Program.IniReadValue(update.Kb, "Title", "", iniPath);
             update.Description = Program.IniReadValue(update.Kb, "Info", "", iniPath);
             update.Category = Program.IniReadValue(update.Kb, "Category", "", iniPath);
@@ -1121,10 +1112,8 @@ internal class WuAgent
             }
 
             update.Size = MiscFunc.ParseInt(Program.IniReadValue(update.Kb, "Size", "0", iniPath));
-
             update.SupportUrl = Program.IniReadValue(update.Kb, "SupportUrl", "", iniPath);
             update.Downloads.AddRange(Program.IniReadValue(update.Kb, "Downloads", "", iniPath).Split('|'));
-
             update.State =
                 (MsUpdate.UpdateState)MiscFunc.ParseInt(Program.IniReadValue(update.Kb, "State", "0", iniPath));
             update.Attributes = MiscFunc.ParseInt(Program.IniReadValue(update.Kb, "Attributes", "0", iniPath));
@@ -1177,7 +1166,7 @@ internal class WuAgent
         // Implementation of IDownloadCompletedCallback interface...
         public void Invoke(IDownloadJob downloadJob, IDownloadCompletedCallbackArgs callbackArgs)
         {
-            // !!! warning this function is invoced from a different thread !!!            
+            // !!! warning this function is invoked from a different thread !!!            
             agent._mDispatcher.Invoke(() => { agent.OnUpdatesDownloaded(downloadJob, downloadJob.AsyncState); });
         }
 

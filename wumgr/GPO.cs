@@ -38,34 +38,13 @@ internal abstract class Gpo
     {
         try
         {
-            RegistryKey subKey = Registry.LocalMachine.CreateSubKey(MWuGpo + @"\AU", true);
-            switch (option)
-            {
-                case AuOptions.Default: //Automatic(default)
-                    subKey.DeleteValue("NoAutoUpdate", false);
-                    subKey.DeleteValue("AUOptions", false);
-                    break;
-                case AuOptions.Disabled: //Disabled
-                    subKey.SetValue("NoAutoUpdate", 1);
-                    subKey.DeleteValue("AUOptions", false);
-                    break;
-                case AuOptions.Notification: //Notification only
-                    subKey.SetValue("NoAutoUpdate", 0);
-                    subKey.SetValue("AUOptions", 2);
-                    break;
-                case AuOptions.Download: //Download only
-                    subKey.SetValue("NoAutoUpdate", 0);
-                    subKey.SetValue("AUOptions", 3);
-                    break;
-                case AuOptions.Scheduled: //Scheduled Installation
-                    subKey.SetValue("NoAutoUpdate", 0);
-                    subKey.SetValue("AUOptions", 4);
-                    break;
-                case AuOptions.ManagedByAdmin: //Managed by Admin
-                    subKey.SetValue("NoAutoUpdate", 0);
-                    subKey.SetValue("AUOptions", 5);
-                    break;
-            }
+            using RegistryKey subKey = Registry.LocalMachine.CreateSubKey(MWuGpo + @"\AU", true);
+            subKey.SetValue("NoAutoUpdate", option == AuOptions.Disabled ? 1 : 0);
+
+            if (option == AuOptions.Default)
+                subKey.DeleteValue("AUOptions", false);
+            else
+                subKey.SetValue("AUOptions", (int)option);
 
             if (option == AuOptions.Scheduled)
             {
@@ -84,44 +63,32 @@ internal abstract class Gpo
         }
     }
 
-    public static AuOptions GetAU(out int day, out int time)
+    public static AuOptions GetAu(out int day, out int time)
     {
         AuOptions option = AuOptions.Default;
         try
         {
-            RegistryKey subKey = Registry.LocalMachine.OpenSubKey(MWuGpo + @"\AU", false);
+            using RegistryKey subKey = Registry.LocalMachine.OpenSubKey(MWuGpo + @"\AU", false);
             object valueNo = subKey?.GetValue("NoAutoUpdate");
             if (valueNo == null || (int)valueNo == 0)
             {
                 object valueAu = subKey?.GetValue("AUOptions");
-                switch (valueAu == null ? 0 : (int)valueAu)
+                option = valueAu switch
                 {
-                    case 0:
-                        option = AuOptions.Default;
-                        break;
-                    case 2:
-                        option = AuOptions.Notification;
-                        break;
-                    case 3:
-                        option = AuOptions.Download;
-                        break;
-                    case 4:
-                        option = AuOptions.Scheduled;
-                        break;
-                    case 5:
-                        option = AuOptions.ManagedByAdmin;
-                        break;
-                }
+                    2 => AuOptions.Notification,
+                    3 => AuOptions.Download,
+                    4 => AuOptions.Scheduled,
+                    5 => AuOptions.ManagedByAdmin,
+                    _ => AuOptions.Default
+                };
             }
             else
             {
                 option = AuOptions.Disabled;
             }
 
-            object valueDay = subKey!.GetValue("ScheduledInstallDay");
-            day = valueDay != null ? (int)valueDay : 0;
-            object valueTime = subKey.GetValue("ScheduledInstallTime");
-            time = valueTime != null ? (int)valueTime : 0;
+            day = subKey?.GetValue("ScheduledInstallDay") as int? ?? 0;
+            time = subKey?.GetValue("ScheduledInstallTime") as int? ?? 0;
         }
         catch
         {
@@ -258,9 +225,9 @@ internal abstract class Gpo
             RegistryKey subKey2 = Registry.LocalMachine.OpenSubKey(MWuGpo + @"\AU", false);
             object valueWsus = subKey2?.GetValue("UseWUServer");
 
-            if (valueBlock != null && (int)valueBlock == 1 && valueWsus != null && (int)valueWsus == 1)
+            if (valueBlock as int? == 1 && valueWsus as int? == 1)
                 return 1; // CheckState.Checked;
-            if ((valueBlock == null || (int)valueBlock == 0) && (valueWsus == null || (int)valueWsus == 0))
+            if (valueBlock as int? == 0 && valueWsus as int? == 0)
                 return 0; // CheckState.Unchecked;
             return 2; // CheckState.Indeterminate;
         }
@@ -333,11 +300,7 @@ internal abstract class Gpo
         bool showErr = false;
         try
         {
-            if (mode == ServiceStartMode.Disabled && svc.Status == ServiceControllerStatus.Running)
-            {
-                svc.Stop();
-                showErr = false;
-            }
+            if (mode == ServiceStartMode.Disabled && svc.Status == ServiceControllerStatus.Running) svc.Stop();
 
             // Note: for UsoSvc and for WaaSMedicSvc this call fails with an access error so we have to set the registry
             //ServiceHelper.ChangeStartMode(svc, mode);

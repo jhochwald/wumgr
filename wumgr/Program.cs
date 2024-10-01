@@ -103,7 +103,7 @@ internal static class Program
             {
                 Console.WriteLine(@"Trying to start with 'runas'...");
                 // Restart program and run as admin
-                string exeName = Process.GetCurrentProcess().MainModule!.FileName;
+                string exeName = Process.GetCurrentProcess().MainModule?.FileName;
                 string arguments = "\"" + string.Join("\" \"", mainArgs) + "\"";
                 ProcessStartInfo startInfo = new(exeName, arguments)
                 {
@@ -187,7 +187,7 @@ internal static class Program
     public static ProcessStartInfo PrepExec(string command, bool silent = true)
     {
         // -onclose """cm d.exe"" /c ping 10.70.0.1" -test
-        int pos = -1;
+        int pos;
         if (command.Length > 0 && command.Substring(0, 1) == "\"")
         {
             command = command.Remove(0, 1).Trim();
@@ -258,8 +258,7 @@ internal static class Program
     public static string IniReadValue(string section, string key, string @default = "", string iniPath = null)
     {
         char[] chars = new char[8193];
-        int size = GetPrivateProfileString(section, key, @default, chars, 8193,
-            iniPath ?? GetIniPath());
+        int size = GetPrivateProfileString(section, key, @default, chars, chars.Length, iniPath ?? GetIniPath());
         return new string(chars, 0, size);
     }
 
@@ -390,14 +389,12 @@ internal static class Program
 
     private static bool SkipUacRun()
     {
-        bool silent = true;
         try
         {
             TaskScheduler.TaskScheduler service = new();
             service.Connect();
-            ITaskFolder folder = service.GetFolder(@"\"); // root
+            ITaskFolder folder = service.GetFolder(@"\");
             IRegisteredTask task = folder.GetTask(MF_N_TASK_NAME);
-            silent = false;
             AppLog.Line("Trying to SkipUAC ...");
             IExecAction action = (IExecAction)task.Definition.Actions[1];
             if (action.Path.Equals(Assembly.GetExecutingAssembly().Location, StringComparison.CurrentCultureIgnoreCase))
@@ -410,20 +407,16 @@ internal static class Program
                     Thread.Sleep(250);
                     runningTask.Refresh();
                     _TASK_STATE state = runningTask.State;
-                    if (state == _TASK_STATE.TASK_STATE_RUNNING || state == _TASK_STATE.TASK_STATE_READY ||
-                        state == _TASK_STATE.TASK_STATE_DISABLED)
-                    {
-                        if (state == _TASK_STATE.TASK_STATE_RUNNING || state == _TASK_STATE.TASK_STATE_READY)
-                            return true;
+                    if (state is _TASK_STATE.TASK_STATE_RUNNING or _TASK_STATE.TASK_STATE_READY)
+                        return true;
+                    if (state == _TASK_STATE.TASK_STATE_DISABLED)
                         break;
-                    }
                 }
             }
         }
         catch (Exception err)
         {
-            if (!silent)
-                AppLog.Line("SkipUAC Error {0}", err.ToString());
+            AppLog.Line("SkipUAC Error {0}", err.ToString());
         }
 
         return false;
@@ -448,7 +441,7 @@ internal static class Program
         {
             Console.WriteLine(message);
             foreach (string t in help)
-                Console.WriteLine(" " + t);
+                Console.WriteLine(@" " + t);
         }
     }
 }

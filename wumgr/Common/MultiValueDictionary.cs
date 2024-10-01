@@ -38,7 +38,7 @@ public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
 
     public List<TValue> GetValues(TKey key, bool returnEmptySet = true)
     {
-        if (!TryGetValue(key, out List<TValue> toReturn) && returnEmptySet) toReturn = new List<TValue>();
+        if (!TryGetValue(key, out List<TValue> toReturn) && returnEmptySet) toReturn = [];
         return toReturn;
     }
 

@@ -186,13 +186,11 @@ internal class PipeIpc(string pipeName)
         public string Read(int timeOut = 10000)
         {
             _messageQueue.Clear();
-            // DateTime.Now.Ticks is in 100 ns, TimeOut is in ms
-            for (long ticksEnd = DateTime.Now.Ticks + timeOut * 10000; ticksEnd > DateTime.Now.Ticks;)
+            long ticksEnd = DateTime.Now.Ticks + timeOut * 10000;
+            while (ticksEnd > DateTime.Now.Ticks)
             {
                 Application.DoEvents();
-                if (!IsConnected())
-                    break;
-                if (_messageQueue.Count > 0)
+                if (!IsConnected() || _messageQueue.Count > 0)
                     break;
             }
 
