@@ -9,6 +9,9 @@ using System.Security.Principal;
 
 namespace wumgr.Common;
 
+/// <summary>
+///     Provides various file operations and security management methods.
+/// </summary>
 internal class FileOps
 {
     public static string SID_null = "S-1-0-0"; //	Null SID
@@ -70,6 +73,11 @@ internal class FileOps
     public static string SID_PPLevel = "S-1-16-20480"; //	Protected Process Mandatory Level
     public static string SidSpLevel = "S-1-16-28672"; //	Secure Process Mandatory Level
 
+    /// <summary>
+    ///     Formats the given size in bytes to a human-readable string.
+    /// </summary>
+    /// <param name="size">The size in bytes.</param>
+    /// <returns>A formatted string representing the size in B, KB, MB, or GB.</returns>
     public static string FormatSize(decimal size)
     {
         if (size == 0)
@@ -83,6 +91,13 @@ internal class FileOps
         return (long)size + " B";
     }
 
+    /// <summary>
+    ///     Moves a file from one location to another.
+    /// </summary>
+    /// <param name="from">The source file path.</param>
+    /// <param name="to">The destination file path.</param>
+    /// <param name="overwrite">Whether to overwrite the destination file if it exists.</param>
+    /// <returns>True if the file was moved successfully, otherwise false.</returns>
     public static bool MoveFile(string from, string to, bool overwrite = false)
     {
         try
@@ -108,6 +123,11 @@ internal class FileOps
         return true;
     }
 
+    /// <summary>
+    ///     Deletes a file at the specified path.
+    /// </summary>
+    /// <param name="path">The file path.</param>
+    /// <returns>True if the file was deleted successfully, otherwise false.</returns>
     public static bool DeleteFile(string path)
     {
         try
@@ -121,6 +141,14 @@ internal class FileOps
         }
     }
 
+    /// <summary>
+    ///     Tests the administrative security settings of a file.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>
+    ///     0 if the file has write or delete permissions for non-admin users, 1 if it does not, 2 if the file does not
+    ///     exist.
+    /// </returns>
     public static int TestFileAdminSec(string filePath)
     {
         //get file info
@@ -150,6 +178,10 @@ internal class FileOps
         return 1;
     }
 
+    /// <summary>
+    ///     Sets the administrative security settings of a file.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
     public static void SetFileAdminSec(string filePath)
     {
         //get file info
@@ -191,6 +223,11 @@ internal class FileOps
         File.SetAccessControl(filePath, fs);
     }
 
+    /// <summary>
+    ///     Tests if the file can be written to.
+    /// </summary>
+    /// <param name="filePath">The file path.</param>
+    /// <returns>True if the file can be written to, otherwise false.</returns>
     public static bool TestWrite(string filePath)
     {
         FileInfo fi = new(filePath);
@@ -206,6 +243,11 @@ internal class FileOps
         }
     }
 
+    /// <summary>
+    ///     Takes ownership of a file.
+    /// </summary>
+    /// <param name="path">The file path.</param>
+    /// <returns>True if ownership was taken successfully, otherwise false.</returns>
     internal static bool TakeOwn(string path)
     {
         bool ret = true;

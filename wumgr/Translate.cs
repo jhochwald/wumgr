@@ -9,34 +9,34 @@ using System.Linq;
 
 namespace wumgr;
 
+/// <summary>
+/// Provides translation functionalities for the application.
+/// </summary>
 public static class Translate
 {
+    /// <summary>
+    /// A sorted dictionary to store translation strings.
+    /// </summary>
     private static readonly SortedDictionary<string, string> MStrings = new();
 
+    /// <summary>
+    /// Loads the translation strings for the specified language.
+    /// </summary>
+    /// <param name="lang">The language code. If empty, the system's UI culture is used.</param>
     public static void Load(string lang = "")
     {
         if (lang == "")
         {
             CultureInfo ci = CultureInfo.InstalledUICulture;
-
-            /*Console.WriteLine("Default Language Info:");
-            Console.WriteLine("* Name: {0}", ci.Name);
-            Console.WriteLine("* Display Name: {0}", ci.DisplayName);
-            Console.WriteLine("* English Name: {0}", ci.EnglishName);
-            Console.WriteLine("* 2-letter ISO Name: {0}", ci.TwoLetterISOLanguageName);
-            Console.WriteLine("* 3-letter ISO Name: {0}", ci.ThreeLetterISOLanguageName);
-            Console.WriteLine("* 3-letter Win32 API Name: {0}", ci.ThreeLetterWindowsLanguageName);*/
-
             lang = ci.TwoLetterISOLanguageName;
         }
 
-
+        // Add default English strings to the dictionary
         MStrings.Add("msg_running", "Application is already running.");
         MStrings.Add("msg_admin_req", "The {0} requires Administrator privileges in order to install updates");
         MStrings.Add("msg_ro_wrk_dir", "Can't write to working directory: {0}");
         MStrings.Add("cap_chk_upd", "Please Check For Updates");
-        MStrings.Add("msg_chk_upd",
-            "{0} couldn't check for updates for {1} days, please check for updates manually and resolve possible issues");
+        MStrings.Add("msg_chk_upd", "{0} couldn't check for updates for {1} days, please check for updates manually and resolve possible issues");
         MStrings.Add("cap_new_upd", "New Updates found");
         MStrings.Add("msg_new_upd", "{0} has found {1} new updates, please review the updates and install them");
         MStrings.Add("lbl_fnd_upd", "Windows Update ({0})");
@@ -44,8 +44,7 @@ public static class Translate
         MStrings.Add("lbl_block_upd", "Hidden Updates ({0})");
         MStrings.Add("lbl_old_upd", "Update History ({0})");
         MStrings.Add("msg_tool_err", "Failed to start tool");
-        MStrings.Add("msg_admin_dl",
-            "Administrator privileges are required in order to download updates using windows update services. Use 'Manual' download instead.");
+        MStrings.Add("msg_admin_dl", "Administrator privileges are required in order to download updates using windows update services. Use 'Manual' download instead.");
         MStrings.Add("msg_admin_inst", "Administrator privileges are required in order to install updates.");
         MStrings.Add("msg_admin_rem", "Administrator privileges are required in order to remove updates.");
         MStrings.Add("msg_dl_done", "Updates downloaded to {0}, ready to be installed by the user.");
@@ -89,8 +88,7 @@ public static class Translate
         MStrings.Add("op_rem", "Removing Updates");
         MStrings.Add("op_cancel", "Cancelling Operation");
         MStrings.Add("op_unk", "Unknown Operation");
-        MStrings.Add("msg_gpo",
-            "Your version of Windows does not respect the standard GPO's, to keep automatic Windows updates blocked, update facilitation services must be disabled.");
+        MStrings.Add("msg_gpo", "Your version of Windows does not respect the standard GPO's, to keep automatic Windows updates blocked, update facilitation services must be disabled.");
         MStrings.Add("col_title", "Title");
         MStrings.Add("col_cat", "Category");
         MStrings.Add("col_kb", "KB Article");
@@ -158,6 +156,12 @@ public static class Translate
             }
     }
 
+    /// <summary>
+    /// Formats a translation string with the specified arguments.
+    /// </summary>
+    /// <param name="id">The translation string identifier.</param>
+    /// <param name="args">The arguments to format the string with.</param>
+    /// <returns>The formatted string.</returns>
     public static string Fmt(string id, params object[] args)
     {
         try

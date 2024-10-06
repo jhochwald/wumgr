@@ -1,7 +1,15 @@
 ﻿namespace wumgr;
 
+/// <summary>
+///     Provides error messages for Windows Update operations based on error codes.
+/// </summary>
 internal static class UpdateErrors
 {
+    /// <summary>
+    ///     Gets the error message corresponding to the specified error code.
+    /// </summary>
+    /// <param name="id">The error code.</param>
+    /// <returns>The error message associated with the error code.</returns>
     public static string GetErrorStr(uint id)
     {
         switch (id)

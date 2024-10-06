@@ -14,6 +14,9 @@ using wumgr.Common;
 
 namespace wumgr;
 
+/// <summary>
+///     Handles the installation and uninstallation of updates.
+/// </summary>
 internal class UpdateInstaller
 {
     private readonly Dispatcher _mDispatcher = Dispatcher.CurrentDispatcher;
@@ -26,6 +29,9 @@ internal class UpdateInstaller
     private List<MsUpdate> _mUpdates;
     private bool _rebootRequired;
 
+    /// <summary>
+    ///     Resets the internal state of the installer.
+    /// </summary>
     private void Reset()
     {
         _errorCount = 0;
@@ -34,6 +40,12 @@ internal class UpdateInstaller
         _mCurrentTask = 0;
     }
 
+    /// <summary>
+    ///     Initiates the installation of updates.
+    /// </summary>
+    /// <param name="updates">List of updates to install.</param>
+    /// <param name="allFiles">Dictionary of all files associated with the updates.</param>
+    /// <returns>True if the installation process started successfully.</returns>
     public bool Install(List<MsUpdate> updates, MultiValueDictionary<string, string> allFiles)
     {
         Reset();
@@ -45,6 +57,11 @@ internal class UpdateInstaller
         return true;
     }
 
+    /// <summary>
+    ///     Initiates the uninstallation of updates.
+    /// </summary>
+    /// <param name="updates">List of updates to uninstall.</param>
+    /// <returns>True if the uninstallation process started successfully.</returns>
     public bool UnInstall(List<MsUpdate> updates)
     {
         Reset();
@@ -55,21 +72,31 @@ internal class UpdateInstaller
         return true;
     }
 
+    /// <summary>
+    ///     Checks if the installer is currently busy.
+    /// </summary>
+    /// <returns>True if the installer is busy, otherwise false.</returns>
     public bool IsBusy()
     {
         return _mUpdates != null;
     }
 
+    /// <summary>
+    ///     Cancels the ongoing operations.
+    /// </summary>
     public void CancelOperations()
     {
         _canceled = true;
     }
 
+    /// <summary>
+    ///     Proceeds to the next update in the list.
+    /// </summary>
     private void NextUpdate()
     {
         if (!_canceled && _mUpdates.Count > _mCurrentTask)
         {
-            int percent = 0; // Note: there does not seam to be an easy way to get this value
+            int percent = 0; // Note: there does not seem to be an easy way to get this value
             if (_mUpdates is { Count: > 0 })
                 Progress?.Invoke(
                     this,
@@ -113,6 +140,11 @@ internal class UpdateInstaller
         Finished?.Invoke(this, args);
     }
 
+    /// <summary>
+    ///     Handles the completion of an update task.
+    /// </summary>
+    /// <param name="success">Indicates if the task was successful.</param>
+    /// <param name="reboot">Indicates if a reboot is required.</param>
     private void OnFinished(bool success, bool reboot)
     {
         if (!success)
@@ -127,6 +159,10 @@ internal class UpdateInstaller
         NextUpdate();
     }
 
+    /// <summary>
+    ///     Runs the installation process for the given files.
+    /// </summary>
+    /// <param name="parameters">List of files to install.</param>
     private void RunInstall(object parameters)
     {
         List<string> files = (List<string>)parameters;
@@ -184,12 +220,12 @@ internal class UpdateInstaller
 
                 if (exitCode == 3010)
                 {
-                    reboot = true; // reboot requires
+                    reboot = true; // reboot required
                 }
                 else if (exitCode == 1641)
                 {
                     AppLog.Line("Error, reboot got initiated: {0}", file);
-                    reboot = true; // reboot in initiated, WTF !!!!
+                    reboot = true; // reboot initiated
                     ok = false;
                 }
                 else if (exitCode != 1 && exitCode != 0)
@@ -212,6 +248,11 @@ internal class UpdateInstaller
         );
     }
 
+    /// <summary>
+    ///     Installs an executable file.
+    /// </summary>
+    /// <param name="fileName">The name of the executable file.</param>
+    /// <returns>The exit code of the installation process.</returns>
     private int InstallExe(string fileName)
     {
         ProcessStartInfo startInfo = new() { FileName = fileName };
@@ -228,6 +269,11 @@ internal class UpdateInstaller
         return ExecTask(startInfo);
     }
 
+    /// <summary>
+    ///     Installs an MSI file.
+    /// </summary>
+    /// <param name="fileName">The name of the MSI file.</param>
+    /// <returns>The exit code of the installation process.</returns>
     private int InstallMsi(string fileName)
     {
         ProcessStartInfo startInfo =
@@ -240,6 +286,11 @@ internal class UpdateInstaller
         return ExecTask(startInfo);
     }
 
+    /// <summary>
+    ///     Installs an MSU file.
+    /// </summary>
+    /// <param name="fileName">The name of the MSU file.</param>
+    /// <returns>The exit code of the installation process.</returns>
     private int InstallMsu(string fileName)
     {
         ProcessStartInfo startInfo =
@@ -252,6 +303,11 @@ internal class UpdateInstaller
         return ExecTask(startInfo);
     }
 
+    /// <summary>
+    ///     Checks if a CAB file is applicable.
+    /// </summary>
+    /// <param name="fileName">The name of the CAB file.</param>
+    /// <returns>True if the CAB file is applicable, otherwise false.</returns>
     private bool CheckCab(string fileName)
     {
         try
@@ -295,10 +351,15 @@ internal class UpdateInstaller
         return false;
     }
 
+    /// <summary>
+    ///     Installs a CAB file.
+    /// </summary>
+    /// <param name="fileName">The name of the CAB file.</param>
+    /// <returns>The exit code of the installation process.</returns>
     private int InstallCab(string fileName)
     {
         if (!CheckCab(fileName) || _canceled)
-            return 0; // update not aplicable or user canceled
+            return 0; // update not applicable or user canceled
 
         ProcessStartInfo startInfo =
             new()
@@ -313,6 +374,12 @@ internal class UpdateInstaller
         return ExecTask(startInfo);
     }
 
+    /// <summary>
+    ///     Executes a process with the given start information.
+    /// </summary>
+    /// <param name="startInfo">The start information for the process.</param>
+    /// <param name="silent">Indicates if the process should run silently.</param>
+    /// <returns>The exit code of the process.</returns>
     private int ExecTask(ProcessStartInfo startInfo, bool silent = true)
     {
         startInfo.FileName = Environment.ExpandEnvironmentVariables(startInfo.FileName);
@@ -334,6 +401,10 @@ internal class UpdateInstaller
         return proc.ExitCode;
     }
 
+    /// <summary>
+    ///     Runs the uninstallation process for the given update.
+    /// </summary>
+    /// <param name="parameters">The KB number of the update to uninstall.</param>
     private void RunUnInstall(object parameters)
     {
         string kb = (string)parameters;
@@ -381,10 +452,19 @@ internal class UpdateInstaller
         );
     }
 
+    /// <summary>
+    ///     Event triggered when the installation or uninstallation process is finished.
+    /// </summary>
     public event EventHandler<FinishedEventArgs> Finished;
 
+    /// <summary>
+    ///     Event triggered to report the progress of the installation or uninstallation process.
+    /// </summary>
     public event EventHandler<WuAgent.ProgressArgs> Progress;
 
+    /// <summary>
+    ///     Arguments for the Finished event.
+    /// </summary>
     public class FinishedEventArgs(int errorCount, bool reboot) : EventArgs
     {
         public readonly bool Reboot = reboot;
