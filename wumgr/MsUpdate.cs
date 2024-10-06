@@ -8,8 +8,14 @@ using StringCollection = System.Collections.Specialized.StringCollection;
 
 namespace wumgr;
 
+/// <summary>
+///     Represents a Microsoft Update with various attributes and states.
+/// </summary>
 public class MsUpdate
 {
+    /// <summary>
+    ///     Enumeration for update attributes.
+    /// </summary>
     public enum UpdateAttr
     {
         None = 0x0000,
@@ -24,6 +30,9 @@ public class MsUpdate
         AutoSelect = 0x0100
     }
 
+    /// <summary>
+    ///     Enumeration for update states.
+    /// </summary>
     public enum UpdateState
     {
         None = 0,
@@ -33,26 +42,90 @@ public class MsUpdate
         History
     }
 
+    /// <summary>
+    ///     The application ID associated with the update.
+    /// </summary>
     public readonly string ApplicationId = "";
+
+    /// <summary>
+    ///     Collection of download URLs for the update.
+    /// </summary>
     public readonly StringCollection Downloads = new();
+
     private IUpdate _entry;
+
+    /// <summary>
+    ///     Attributes of the update.
+    /// </summary>
     public int Attributes;
+
+    /// <summary>
+    ///     Category of the update.
+    /// </summary>
     public string Category = "";
+
+    /// <summary>
+    ///     Date of the update.
+    /// </summary>
     public DateTime Date = DateTime.MinValue;
+
+    /// <summary>
+    ///     Description of the update.
+    /// </summary>
     public string Description = "";
+
+    /// <summary>
+    ///     HRESULT code of the update.
+    /// </summary>
     public int HResult;
+
+    /// <summary>
+    ///     KB article ID of the update.
+    /// </summary>
     public string Kb = "";
+
+    /// <summary>
+    ///     Result code of the update.
+    /// </summary>
     public int ResultCode;
+
+    /// <summary>
+    ///     Size of the update.
+    /// </summary>
     public decimal Size;
+
+    /// <summary>
+    ///     State of the update.
+    /// </summary>
     public UpdateState State = UpdateState.None;
+
+    /// <summary>
+    ///     Support URL for the update.
+    /// </summary>
     public string SupportUrl = "";
+
+    /// <summary>
+    ///     Title of the update.
+    /// </summary>
     public string Title = "";
+
+    /// <summary>
+    ///     UUID of the update.
+    /// </summary>
     public string Uuid = "";
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="MsUpdate" /> class.
+    /// </summary>
     public MsUpdate()
     {
     }
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="MsUpdate" /> class with the specified update and state.
+    /// </summary>
+    /// <param name="update">The update object.</param>
+    /// <param name="state">The state of the update.</param>
     public MsUpdate(IUpdate update, UpdateState state)
     {
         _entry = update;
@@ -100,6 +173,10 @@ public class MsUpdate
         }
     }
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="MsUpdate" /> class with the specified update history entry.
+    /// </summary>
+    /// <param name="update">The update history entry object.</param>
     public MsUpdate(IUpdateHistoryEntry2 update)
     {
         try
@@ -124,6 +201,9 @@ public class MsUpdate
         }
     }
 
+    /// <summary>
+    ///     Adds the download URLs of the update to the Downloads collection.
+    /// </summary>
     private void AddUpdates()
     {
         AddUpdates(_entry.DownloadContents);
@@ -132,6 +212,10 @@ public class MsUpdate
                 AddUpdates(bundle.DownloadContents);
     }
 
+    /// <summary>
+    ///     Adds the download URLs from the specified content collection to the Downloads collection.
+    /// </summary>
+    /// <param name="content">The content collection.</param>
     private void AddUpdates(IUpdateDownloadContentCollection content)
     {
         foreach (IUpdateDownloadContent2 udc in content)
@@ -144,11 +228,21 @@ public class MsUpdate
         }
     }
 
+    /// <summary>
+    ///     Retrieves the KB article ID from the specified update.
+    /// </summary>
+    /// <param name="update">The update object.</param>
+    /// <returns>The KB article ID.</returns>
     private static string GetKb(IUpdate update)
     {
         return update.KBArticleIDs.Count > 0 ? "KB" + update.KBArticleIDs[0] : "KBUnknown";
     }
 
+    /// <summary>
+    ///     Retrieves the category from the specified category collection.
+    /// </summary>
+    /// <param name="cats">The category collection.</param>
+    /// <returns>The category string.</returns>
     private static string GetCategory(ICategoryCollection cats)
     {
         string classification = "";
@@ -169,11 +263,18 @@ public class MsUpdate
         return product.Length == 0 ? classification : product + "; " + classification;
     }
 
+    /// <summary>
+    ///     Invalidates the update entry.
+    /// </summary>
     public void Invalidate()
     {
         _entry = null;
     }
 
+    /// <summary>
+    ///     Retrieves the update object.
+    /// </summary>
+    /// <returns>The update object.</returns>
     public IUpdate GetUpdate()
     {
         /*if (Entry == null)

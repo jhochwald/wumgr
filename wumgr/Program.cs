@@ -17,6 +17,9 @@ using wumgr.Common;
 
 namespace wumgr;
 
+/// <summary>
+///     Main program class for the Update Manager for Windows.
+/// </summary>
 internal static class Program
 {
     private const string MF_N_TASK_NAME = "WuMgrNoUAC";
@@ -29,20 +32,28 @@ internal static class Program
     private static WuAgent _agent;
     public static PipeIpc Ipc;
 
+    /// <summary>
+    ///     Gets the path to the INI file.
+    /// </summary>
+    /// <returns>The path to the INI file.</returns>
     private static string GetIniPath()
     {
         return WrkPath + @"\wumgr.ini";
     }
 
+    /// <summary>
+    ///     Gets the path to the tools directory.
+    /// </summary>
+    /// <returns>The path to the tools directory.</returns>
     public static string GetToolsPath()
     {
         return AppPath + @"\Tools";
     }
 
-
     /// <summary>
-    ///     Der Haupteinstiegspunkt für die Anwendung.
+    ///     The main entry point for the application.
     /// </summary>
+    /// <param name="mainArgs">The command line arguments.</param>
     [STAThread]
     private static void Main(string[] mainArgs)
     {
@@ -154,6 +165,9 @@ internal static class Program
         ExecOnClose();
     }
 
+    /// <summary>
+    ///     Executes commands on application start.
+    /// </summary>
     private static void ExecOnStart()
     {
         string toolsIni = GetToolsPath() + @"\Tools.ini";
@@ -166,6 +180,9 @@ internal static class Program
             DoExec(PrepExec(onStart, MiscFunc.ParseInt(IniReadValue("OnStart", "Silent", "1", toolsIni)) != 0), true);
     }
 
+    /// <summary>
+    ///     Executes commands on application close.
+    /// </summary>
     private static void ExecOnClose()
     {
         string toolsIni = GetToolsPath() + @"\Tools.ini";
@@ -184,6 +201,12 @@ internal static class Program
                 DoExec(PrepExec(_args[++i]));
     }
 
+    /// <summary>
+    ///     Prepares a ProcessStartInfo object for executing a command.
+    /// </summary>
+    /// <param name="command">The command to execute.</param>
+    /// <param name="silent">Whether to execute the command silently.</param>
+    /// <returns>A ProcessStartInfo object.</returns>
     public static ProcessStartInfo PrepExec(string command, bool silent = true)
     {
         // -onclose """cm d.exe"" /c ping 10.70.0.1" -test
@@ -224,6 +247,12 @@ internal static class Program
         return startInfo;
     }
 
+    /// <summary>
+    ///     Executes a command using the specified ProcessStartInfo.
+    /// </summary>
+    /// <param name="startInfo">The ProcessStartInfo object.</param>
+    /// <param name="wait">Whether to wait for the process to exit.</param>
+    /// <returns>True if the command executed successfully, false otherwise.</returns>
     public static bool DoExec(ProcessStartInfo startInfo, bool wait = false)
     {
         try
@@ -246,6 +275,13 @@ internal static class Program
     [DllImport("kernel32")]
     private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
 
+    /// <summary>
+    ///     Writes a value to the INI file.
+    /// </summary>
+    /// <param name="section">The section in the INI file.</param>
+    /// <param name="key">The key in the INI file.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="iniPath">The path to the INI file.</param>
     public static void IniWriteValue(string section, string key, string value, string iniPath = null)
     {
         WritePrivateProfileString(section, key, value, iniPath ?? GetIniPath());
@@ -255,6 +291,14 @@ internal static class Program
     private static extern int GetPrivateProfileString(string section, string key, string def, [In] [Out] char[] retVal,
         int size, string filePath);
 
+    /// <summary>
+    ///     Reads a value from the INI file.
+    /// </summary>
+    /// <param name="section">The section in the INI file.</param>
+    /// <param name="key">The key in the INI file.</param>
+    /// <param name="default">The default value if the key is not found.</param>
+    /// <param name="iniPath">The path to the INI file.</param>
+    /// <returns>The value read from the INI file.</returns>
     public static string IniReadValue(string section, string key, string @default = "", string iniPath = null)
     {
         char[] chars = new char[8193];
@@ -262,6 +306,11 @@ internal static class Program
         return new string(chars, 0, size);
     }
 
+    /// <summary>
+    ///     Enumerates the sections in the INI file.
+    /// </summary>
+    /// <param name="iniPath">The path to the INI file.</param>
+    /// <returns>An array of section names.</returns>
     public static string[] IniEnumSections(string iniPath = null)
     {
         char[] chars = new char[8193];
@@ -269,6 +318,11 @@ internal static class Program
         return new string(chars, 0, size).Split('\0');
     }
 
+    /// <summary>
+    ///     Tests if a command line argument is present.
+    /// </summary>
+    /// <param name="name">The name of the argument.</param>
+    /// <returns>True if the argument is present, false otherwise.</returns>
     public static bool TestArg(string name)
     {
         foreach (string t in _args)
@@ -278,6 +332,11 @@ internal static class Program
         return false;
     }
 
+    /// <summary>
+    ///     Gets the value of a command line argument.
+    /// </summary>
+    /// <param name="name">The name of the argument.</param>
+    /// <returns>The value of the argument.</returns>
     public static string GetArg(string name)
     {
         for (int i = 0; i < _args.Length; i++)
@@ -292,6 +351,10 @@ internal static class Program
         return null;
     }
 
+    /// <summary>
+    ///     Enables or disables auto-start for the application.
+    /// </summary>
+    /// <param name="enable">True to enable auto-start, false to disable.</param>
     public static void AutoStart(bool enable)
     {
         RegistryKey subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
@@ -306,12 +369,20 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    ///     Checks if auto-start is enabled for the application.
+    /// </summary>
+    /// <returns>True if auto-start is enabled, false otherwise.</returns>
     public static bool IsAutoStart()
     {
         RegistryKey subKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
         return subKey?.GetValue("wumgr") != null;
     }
 
+    /// <summary>
+    ///     Checks if the UAC skip task is enabled.
+    /// </summary>
+    /// <returns>True if the UAC skip task is enabled, false otherwise.</returns>
     public static bool IsSkipUacRun()
     {
         try
@@ -330,6 +401,11 @@ internal static class Program
         return false;
     }
 
+    /// <summary>
+    ///     Enables or disables the UAC skip task.
+    /// </summary>
+    /// <param name="isEnable">True to enable the UAC skip task, false to disable.</param>
+    /// <returns>True if the operation succeeded, false otherwise.</returns>
     public static bool SkipUacEnable(bool isEnable)
     {
         try
@@ -387,6 +463,10 @@ internal static class Program
         return true;
     }
 
+    /// <summary>
+    ///     Runs the UAC skip task.
+    /// </summary>
+    /// <returns>True if the task was started successfully, false otherwise.</returns>
     private static bool SkipUacRun()
     {
         try
@@ -422,6 +502,9 @@ internal static class Program
         return false;
     }
 
+    /// <summary>
+    ///     Shows the help message.
+    /// </summary>
     private static void ShowHelp()
     {
         string message = "Available command line options\r\n";

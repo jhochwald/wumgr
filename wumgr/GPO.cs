@@ -12,8 +12,14 @@ using wumgr.Common;
 
 namespace wumgr;
 
+/// <summary>
+///     Abstract class for managing Group Policy Objects (GPO) related to Windows Update settings.
+/// </summary>
 internal abstract class Gpo
 {
+    /// <summary>
+    ///     Enumeration for Automatic Update options.
+    /// </summary>
     public enum AuOptions
     {
         Default = 0, // Automatic
@@ -24,16 +30,25 @@ internal abstract class Gpo
         ManagedByAdmin = 5
     }
 
+    /// <summary>
+    ///     Enumeration for the level of respect for GPO settings.
+    /// </summary>
     public enum Respect
     {
         Unknown = 0,
-        Full, // Win 7, 8, 10 Ent/Edu/Svr
-        Partial, // Win 10 Pro
-        None // Win 10 Home
+        Full, // Win 7, 8, 10, 11 Ent/Edu/Svr
+        Partial, // Win 10, 11 Pro
+        None // Win 10, 11 Home
     }
 
     private static readonly string MWuGpo = @"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate";
 
+    /// <summary>
+    ///     Configures Automatic Update settings.
+    /// </summary>
+    /// <param name="option">The Automatic Update option to set.</param>
+    /// <param name="day">The scheduled install day (optional).</param>
+    /// <param name="time">The scheduled install time (optional).</param>
     public static void ConfigAU(AuOptions option, int day = -1, int time = -1)
     {
         try
@@ -63,6 +78,12 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Retrieves the current Automatic Update settings.
+    /// </summary>
+    /// <param name="day">The scheduled install day.</param>
+    /// <param name="time">The scheduled install time.</param>
+    /// <returns>The current Automatic Update option.</returns>
     public static AuOptions GetAu(out int day, out int time)
     {
         AuOptions option = AuOptions.Default;
@@ -99,6 +120,10 @@ internal abstract class Gpo
         return option;
     }
 
+    /// <summary>
+    ///     Configures driver Automatic Update settings.
+    /// </summary>
+    /// <param name="option">The option to set for driver updates.</param>
     public static void ConfigDriverAu(int option)
     {
         try
@@ -123,6 +148,10 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Retrieves the current driver Automatic Update settings.
+    /// </summary>
+    /// <returns>The current driver Automatic Update option.</returns>
     public static int GetDriverAu()
     {
         try
@@ -145,6 +174,10 @@ internal abstract class Gpo
         return 2;
     }
 
+    /// <summary>
+    ///     Hides or shows the Windows Update settings page.
+    /// </summary>
+    /// <param name="hide">True to hide the page, false to show it.</param>
     public static void HideUpdatePage(bool hide = true)
     {
         try
@@ -163,6 +196,10 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Checks if the Windows Update settings page is hidden.
+    /// </summary>
+    /// <returns>True if the page is hidden, false otherwise.</returns>
     public static bool IsUpdatePageHidden()
     {
         try
@@ -180,6 +217,10 @@ internal abstract class Gpo
         return false;
     }
 
+    /// <summary>
+    ///     Blocks or unblocks connections to Microsoft Update servers.
+    /// </summary>
+    /// <param name="block">True to block, false to unblock.</param>
     public static void BlockMs(bool block = true)
     {
         try
@@ -213,6 +254,10 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Retrieves the current block status for Microsoft Update servers.
+    /// </summary>
+    /// <returns>The current block status.</returns>
     public static int GetBlockMs()
     {
         try
@@ -239,16 +284,19 @@ internal abstract class Gpo
         return 2;
     }
 
+    /// <summary>
+    ///     Configures the Windows Store Automatic Update settings.
+    /// </summary>
+    /// <param name="disable">True to disable, false to enable.</param>
     public static void SetStoreAu(bool disable)
     {
         try
         {
             RegistryKey subKey = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", true);
-            //var subKey = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate", true);
             if (disable)
                 subKey.SetValue("AutoDownload", 2);
             else
-                subKey.DeleteValue("AutoDownload", false); // subKey.SetValue("AutoDownload", 4);
+                subKey.DeleteValue("AutoDownload", false);
         }
         catch (Exception e)
         {
@@ -256,12 +304,15 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Retrieves the current Windows Store Automatic Update settings.
+    /// </summary>
+    /// <returns>True if disabled, false otherwise.</returns>
     public static bool GetStoreAu()
     {
         try
         {
             RegistryKey subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\WindowsStore", false);
-            //var subKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsStore\WindowsUpdate");
             object valueBlock = subKey?.GetValue("AutoDownload");
             return valueBlock != null && (int)valueBlock == 2;
         }
@@ -273,6 +324,10 @@ internal abstract class Gpo
         return false;
     }
 
+    /// <summary>
+    ///     Disables or enables Automatic Updates.
+    /// </summary>
+    /// <param name="disable">True to disable, false to enable.</param>
     public static void DisableAu(bool disable)
     {
         try
@@ -294,6 +349,11 @@ internal abstract class Gpo
         }
     }
 
+    /// <summary>
+    ///     Configures the start mode of a service.
+    /// </summary>
+    /// <param name="name">The name of the service.</param>
+    /// <param name="mode">The start mode to set.</param>
     private static void ConfigSvc(string name, ServiceStartMode mode)
     {
         ServiceController svc = new(name);
@@ -301,9 +361,6 @@ internal abstract class Gpo
         try
         {
             if (mode == ServiceStartMode.Disabled && svc.Status == ServiceControllerStatus.Running) svc.Stop();
-
-            // Note: for UsoSvc and for WaaSMedicSvc this call fails with an access error so we have to set the registry
-            //ServiceHelper.ChangeStartMode(svc, mode);
         }
         catch
         {
@@ -327,22 +384,29 @@ internal abstract class Gpo
         RegistrySecurity ac = subKey.GetAccessControl();
         AuthorizationRuleCollection
             rules = ac.GetAccessRules(true, true, typeof(SecurityIdentifier)); // get as SID not string
-        // cleanup old roule
         foreach (RegistryAccessRule rule in rules)
             if (rule.IdentityReference.Value.Equals(FileOps.SidSystem))
                 ac.RemoveAccessRule(rule);
-        // Note: windows tryes to re-enable this services so we need to remove system write access
-        if (mode == ServiceStartMode.Disabled) // add new rule
+        if (mode == ServiceStartMode.Disabled)
             ac.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(FileOps.SidSystem),
                 RegistryRights.FullControl, AccessControlType.Deny));
         subKey.SetAccessControl(ac);
     }
 
+    /// <summary>
+    ///     Checks if Automatic Updates are disabled.
+    /// </summary>
+    /// <returns>True if disabled, false otherwise.</returns>
     public static bool GetDisableAu()
     {
         return IsSvcDisabled("UsoSvc") && IsSvcDisabled("WaaSMedicSvc");
     }
 
+    /// <summary>
+    ///     Checks if a service is disabled.
+    /// </summary>
+    /// <param name="name">The name of the service.</param>
+    /// <returns>True if disabled, false otherwise.</returns>
     private static bool IsSvcDisabled(string name)
     {
         try
@@ -359,6 +423,10 @@ internal abstract class Gpo
         return false;
     }
 
+    /// <summary>
+    ///     Retrieves the level of respect for GPO settings.
+    /// </summary>
+    /// <returns>The level of respect.</returns>
     public static Respect GetRespect()
     {
         try
@@ -367,7 +435,6 @@ internal abstract class Gpo
                 Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
             if (subKey == null)
                 return Respect.Unknown;
-            //string edition = subKey.GetValue("EditionID", "").ToString();
             string name = subKey.GetValue("ProductName", "").ToString();
             string type = subKey.GetValue("InstallationType", "").ToString();
 
@@ -391,6 +458,10 @@ internal abstract class Gpo
         return Respect.Unknown;
     }
 
+    /// <summary>
+    ///     Retrieves the Windows version.
+    /// </summary>
+    /// <returns>The Windows version as a float.</returns>
     public static float GetWinVersion()
     {
         try
@@ -399,38 +470,13 @@ internal abstract class Gpo
                 Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", false);
             if (subKey == null)
                 return 0.0f;
-            //string Majorversion = subKey.GetValue("CurrentMajorVersionNumber", "0").ToString(); // this is 10 on 10 but not present on earlier editions
             string version = subKey.GetValue("CurrentVersion", "0").ToString();
             float versionNum = float.Parse(version, CultureInfo.InvariantCulture.NumberFormat);
-            //string name = subKey.GetValue("ProductName", "").ToString();
-
-            /*
-                Operating system              Version number
-                ----------------------------  --------------
-                Windows 10                      6.3 WTF why not 10
-                Windows Server 2016             6.3 WTF why not 10
-                Windows 8.1                     6.3
-                Windows Server 2012 R2          6.3
-                Windows 8                       6.2
-                Windows Server 2012             6.2
-                Windows 7                       6.1
-                Windows Server 2008 R2          6.1
-                Windows Server 2008             6.0
-                Windows Vista                   6.0
-                Windows Server 2003 R2          5.2
-                Windows Server 2003             5.2
-                Windows XP 64-Bit Edition       5.2
-                Windows XP                      5.1
-                Windows 2000                    5.0
-                Windows ME                      4.9
-                Windows 98                      4.10
-             */
 
             if (versionNum >= 6.3)
             {
-                //!name.Contains("8.1") && !name.Contains("2012 R2");
                 int build = MiscFunc.ParseInt(subKey.GetValue("CurrentBuildNumber", "0").ToString());
-                if (build >= 10000) // 1507 RTM release
+                if (build >= 10000)
                     return 10.0f;
             }
 
