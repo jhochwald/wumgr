@@ -660,7 +660,41 @@ public partial class WuMgr : Form
             items.Add(item);
         }
 
-        updateView.Items.AddRange(items.ToArray());
+        // Write all Windows 10 updates to CSV: Window10_Updates.csv
+        // Output results to CSV for easier analysis
+        string[] titles = { "Title", "Category", "Application ID", "Date", "Size", "State" };
+        var nbTitles = titles.Length;
+        var sb = new System.Text.StringBuilder();
+        var numTitle = 0;
+        foreach (var title in titles)
+        {
+            sb.Append(title);
+            if (numTitle++ < nbTitles - 1) sb.Append(";");
+        }
+        sb.AppendLine();
+        var arrayItems = items.ToArray();
+        //var numItem = 0;
+        foreach (var item in arrayItems)
+        {
+            //numItem++;
+            var numSubItem = 0;
+            foreach (ListViewItem.ListViewSubItem subItem in item.SubItems)
+            {
+                // Remove semicolons to avoid CSV issues
+                var subItemText = subItem.Text.Trim().Replace(";", "");
+                sb.Append(subItemText);
+                if (numSubItem < nbTitles - 1) sb.Append(";");
+                numSubItem++;
+            }
+            sb.AppendLine();
+            //if (numItem > 4) break;
+        }
+        // See also File2XL: Open a csv file into MS-Excel with pre-formatted cells
+        // https://github.com/PatriceDargenton/File2XL
+        var path = Program.WrkPath + @"\Window10_Updates.csv";
+        File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8);
+
+        updateView.Items.AddRange(arrayItems); // items.ToArray());
 
         // Note: this has caused issues in the past
         //updateView.SetGroupState(ListViewGroupState.Collapsible);
